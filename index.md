@@ -1,4 +1,4 @@
 ---
-layout: Animaciones Matemáticas
+layout: blog
 title: Mi Blog de Matemáticas
 ---
