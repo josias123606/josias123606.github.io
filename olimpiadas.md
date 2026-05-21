@@ -35,8 +35,10 @@ window.MathJax = {
 .problem-head{padding:16px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .p-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500}
 .p-badge.comp{background:#2a3a2a;color:#8ec88e;border:1px solid #3a5a3a}
+.p-badge.year{background:#3a2a24;color:#e8b88e;border:1px solid #5a3a2a} /* Nuevo color para el año */
 .p-badge.country{background:#2a2a3a;color:#8e9ec8;border:1px solid #3a3a5a}
 .p-badge.topic{background:#3a2a2a;color:#c88e8e;border:1px solid #5a3a3a}
+.p-badge.num{background:#3a3a2a;color:#c8c88e;border:1px solid #5a5a3a}
 .problem-body{padding:24px}
 .problem-text{color:#d8d8d8;font-size:15px;line-height:1.85}
 .problem-text p{margin:10px 0}
@@ -70,9 +72,10 @@ window.MathJax = {
 </div>
 
 <div class="filter-section">
-    <div class="filter-label">Nivel de competencia</div>
+    <div class="filter-label">Nivel / Origen de competencia</div>
     <div class="filter-group" id="diffGroup">
         <div class="f-btn on" data-diff="todas">Todas</div>
+        <div class="f-btn" data-diff="mit">MIT / HMMT / Putnam</div>
         <div class="f-btn" data-diff="nacional">Nacional</div>
         <div class="f-btn" data-diff="regional">Regional</div>
         <div class="f-btn" data-diff="internacional">Internacional (IMO / USAMO / APMO)</div>
@@ -101,25 +104,18 @@ window.MathJax = {
     var DS         = 'ShadenA/MathNet';
     var BASE       = 'https://datasets-server.huggingface.co';
     var BATCH      = 100;
-    var MAX_TRY    = 5; 
+    var MAX_TRY    = 8; 
     var lastId     = null;
     var activeTopic= 'todas';
     var activeDiff = 'todas';
 
-    // CORRECCIÓN: La API de Hugging Face ahora exige que config sea 'default' y no 'all'
-    var _cfg   = 'default'; 
+    var _cfg   = 'all'; 
     var _split = 'train';
-    var _total = 27817;
+    var _total = 27800;
 
-    var DIFF_INTL    = ['imo','usamo','isl','shortlist','putnam'];
+    var DIFF_INTL    = ['imo','usamo','isl','shortlist'];
     var DIFF_REG     = ['balkan','ibero','apmo','nordic','baltic','benelux','caucasus','mediterran','pan african','south east'];
-
-    function rowsUrl(offset){
-        return BASE + '/rows?dataset=' + encodeURIComponent(DS)
-             + '&config=' + encodeURIComponent(_cfg)
-             + '&split='  + encodeURIComponent(_split)
-             + '&offset=' + offset + '&length=' + BATCH;
-    }
+    var DIFF_MIT     = ['mit', 'hmmt', 'harvard', 'putnam'];
 
     document.getElementById('topicGroup').addEventListener('click', function(e){
         var b=e.target.closest('.f-btn'); if(!b) return;
@@ -139,11 +135,14 @@ window.MathJax = {
     function matchesDiff(row){
         if(activeDiff==='todas') return true;
         var c=(row.competition||'').toLowerCase();
+        
+        if(activeDiff==='mit') return DIFF_MIT.some(function(k){return c.indexOf(k)!==-1;});
         if(activeDiff==='internacional') return DIFF_INTL.some(function(k){return c.indexOf(k)!==-1;});
         if(activeDiff==='regional')      return DIFF_REG.some(function(k){return c.indexOf(k)!==-1;});
         if(activeDiff==='nacional'){
             return !DIFF_INTL.some(function(k){return c.indexOf(k)!==-1;})
-                && !DIFF_REG.some(function(k){return c.indexOf(k)!==-1;});
+                && !DIFF_REG.some(function(k){return c.indexOf(k)!==-1;})
+                && !DIFF_MIT.some(function(k){return c.indexOf(k)!==-1;});
         }
         return true;
     }
@@ -156,6 +155,13 @@ window.MathJax = {
         var btn=document.getElementById('randomBtn');
         btn.disabled=on;
         btn.innerHTML=on?'<span class="spinner"></span>Buscando...':'🎲 Problema aleatorio';
+    }
+
+    function rowsUrl(offset){
+        return BASE + '/rows?dataset=' + encodeURIComponent(DS)
+             + '&config=' + encodeURIComponent(_cfg)
+             + '&split='  + encodeURIComponent(_split)
+             + '&offset=' + offset + '&length=' + BATCH;
     }
 
     window.fetchRandomProblem = async function(){
@@ -200,13 +206,13 @@ window.MathJax = {
                 }
             }
             if(!found && attempt<MAX_TRY-1)
-                document.getElementById('attemptHint').textContent='Intento '+(attempt+1)+'/'+MAX_TRY+' — ampliando búsqueda...';
+                document.getElementById('attemptHint').textContent='Intento '+(attempt+1)+'/'+MAX_TRY+' — buscando en el compendio...';
         }
 
         document.getElementById('attemptHint').textContent='';
 
         if(!found){
-            setStatus('No se encontraron problemas con estos filtros. Prueba otra combinación.',true);
+            setStatus('No se encontraron problemas con estos filtros en este bloque aleatorio. Inténtalo de nuevo.',true);
             setLoading(false); return;
         }
 
@@ -227,46 +233,100 @@ window.MathJax = {
     };
 })();
 
+/* --- RENDERIZADO DEL PROBLEMA Y SUS ETIQUETAS --- */
 function _renderProblem(p, textEl, solEl, metaEl){
     if(metaEl){
         var m='';
-        if(p.competition) m+='<span class="p-badge comp">🏅 '+_esc(p.competition)+'</span>';
-        if(p.country)     m+='<span class="p-badge country">🌍 '+_esc(p.country)+'</span>';
+        var comp = p.competition || '';
+        var yr = p.year || '';
+        var num = p.problem_number || '';
+        var country = p.country || '';
+        
+        // Aquí se crea la etiqueta de competencia
+        if(comp) m+='<span class="p-badge comp">🏅 '+_esc(comp)+'</span>';
+        // 🎉 NUEVO: Aquí se crea la etiqueta del AÑO (Si existe en la base de datos)
+        if(yr) m+='<span class="p-badge year">📅 Año '+_esc(yr)+'</span>';
+        // Etiqueta del país
+        if(country) m+='<span class="p-badge country">🌍 '+_esc(country)+'</span>';
+        // Número del problema
+        if(num) m+='<span class="p-badge num">🔢 N° '+_esc(num)+'</span>';
+        
         var ts=p.topics_flat; if(!Array.isArray(ts)) ts=ts?[ts]:[];
         ts.slice(0,3).forEach(function(t){ m+='<span class="p-badge topic">📐 '+_esc(String(t).split('>').pop().trim())+'</span>'; });
         metaEl.innerHTML=m;
     }
-    textEl.innerHTML = _md(p.problem_markdown||'');
-    if(solEl) solEl.innerHTML = _md(p.solutions_markdown||'Solución no disponible.');
     
-    // Convertir las fórmulas matemáticas con MathJax
+    textEl.innerHTML = _md(p.problem_markdown||'');
+    
+    if(solEl){
+        if(p.solutions_markdown && Array.isArray(p.solutions_markdown)){
+            solEl.innerHTML = _md(p.solutions_markdown.join('\n\n---\n\n'));
+        } else {
+            solEl.innerHTML = _md(p.solutions_markdown||'Solución no disponible.');
+        }
+    }
+    
     if(window.MathJax && MathJax.typesetPromise){
         var els=[textEl]; if(solEl) els.push(solEl);
         MathJax.typesetPromise(els).catch(function(err){ console.log("MathJax error: ", err); });
     }
 }
+
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* --- CORRECCIÓN CRÍTICA DE LATEX --- */
 function _md(md){
     if(!md) return '';
+    
+    var mathBlocks = [];
+    md = md.replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
+        mathBlocks.push(match);
+        return '\n%%%MATH_BLOCK_' + (mathBlocks.length - 1) + '%%%\n';
+    });
+
     var lines=md.split('\n'),out=[],inL=false;
     for(var i=0;i<lines.length;i++){
         var l=lines[i];
+        if(l.trim()==='') {
+            if(inL){out.push('</ul>');inL=false;}
+            out.push('');
+            continue;
+        }
         if(/^[-*+]\s/.test(l)||/^\d+\.\s/.test(l)){
             if(!inL){out.push('<ul>');inL=true;}
             out.push('<li>'+_fmt(l.replace(/^[-*+\d.]+\s/,''))+'</li>');
+        } else if(l.indexOf('%%%MATH_BLOCK_') !== -1) {
+            if(inL){out.push('</ul>');inL=false;}
+            out.push(l); 
         } else {
             if(inL){out.push('</ul>');inL=false;}
-            if(l.trim()==='') out.push('');
-            else if(/^#+\s/.test(l)) out.push('<strong>'+_fmt(l.replace(/^#+\s/,''))+'</strong>');
+            if(/^#+\s/.test(l)) out.push('<strong>'+_fmt(l.replace(/^#+\s/,''))+'</strong>');
             else out.push('<p>'+_fmt(l)+'</p>');
         }
     }
     if(inL) out.push('</ul>');
-    return out.join('\n');
+    var result = out.join('\n');
+
+    for(var j=0; j<mathBlocks.length; j++){
+        result = result.replace('%%%MATH_BLOCK_' + j + '%%%', mathBlocks[j]);
+    }
+    return result;
 }
+
 function _fmt(s){
-    return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g,'<em>$1</em>')
-            .replace(/`(.+?)`/g,'<code>$1</code>');
+    var inlineMath = [];
+    s = s.replace(/\$([\s\S]*?)\$/g, function(match) {
+        inlineMath.push(match);
+        return '%%%INLINE_MATH_' + (inlineMath.length - 1) + '%%%';
+    });
+
+    s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+         .replace(/\*(.+?)\*/g,'<em>$1</em>')
+         .replace(/`(.+?)`/g,'<code>$1</code>');
+
+    for(var j=0; j<inlineMath.length; j++){
+        s = s.replace('%%%INLINE_MATH_' + j + '%%%', inlineMath[j]);
+    }
+    return s;
 }
 </script>
