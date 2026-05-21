@@ -1,0 +1,17 @@
+---
+layout: default
+---
+
+<article class="blog-post">
+    <h2>{{ page.title }}</h2>
+    <div class="blog-post-meta">
+        <span>{{ page.date | date: "%d de %B, %Y" }}</span>
+        {% if page.categories %}
+            {% for category in page.categories %}
+                <span class="blog-post-category">{{ category }}</span>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    {{ content }}
+</article>

@@ -1,19 +1,303 @@
 <!DOCTYPE html>
-<html lang="{{ page.lang | default: site.lang | default: "en" }}">
-  <head>
+<html lang="es">
+<head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% if page.title %}{{ page.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
-    <link rel="stylesheet" href="{{ '/assets/css/styles.css' | relative_url }}">
-    {% seo %}
-  </head>
-  <body>
-    {% include navigation.html %}
-    <main class="page-content" aria-label="Content">
-      <div class="wrapper">
-        {{ content }}
-      </div>
-    </main>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if page.title %}{{ page.title }} - {% endif %}Mi Blog Matemático</title>
+    <!-- MathJax para soporte LaTeX -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        /* Encabezado */
+        header {
+            background-color: #252525;
+            border-bottom: 2px solid #404040;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 15px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        /* Pestañas de navegación */
+        nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #404040;
+        }
+
+        nav a {
+            padding: 12px 24px;
+            color: #b0b0b0;
+            text-decoration: none;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: #e0e0e0;
+            border-bottom-color: #666;
+        }
+
+        nav a.active {
+            color: #e0e0e0;
+            border-bottom-color: #888;
+        }
+
+        /* Contenedor principal */
+        .main-container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 30px;
+        }
+
+        /* Contenido */
+        .content {
+            background-color: #222;
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid #333;
+        }
+
+        /* Sección de Autor */
+        .author-section {
+            text-align: center;
+        }
+
+        .author-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #404040;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .author-section h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .author-section p {
+            color: #a0a0a0;
+            margin-bottom: 15px;
+        }
+
+        /* Entradas de blog */
+        .blog-post {
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #333;
+        }
+
+        .blog-post:last-child {
+            border-bottom: none;
+        }
+
+        .blog-post h2,
+        .blog-post h3 {
+            font-size: 20px;
+            margin-bottom: 8px;
+            color: #f0f0f0;
+        }
+
+        .blog-post h2 {
+            font-size: 24px;
+        }
+
+        .blog-post-meta {
+            font-size: 12px;
+            color: #808080;
+            margin-bottom: 12px;
+        }
+
+        .blog-post-category {
+            display: inline-block;
+            background-color: #333;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+            font-size: 11px;
+            color: #b0b0b0;
+        }
+
+        .blog-post p {
+            color: #d0d0d0;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+
+        /* MathJax */
+        .math-block {
+            background-color: #1a1a1a;
+            padding: 15px;
+            border-left: 3px solid #555;
+            margin: 15px 0;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        /* Barra lateral */
+        .sidebar {
+            background-color: #222;
+            border-radius: 8px;
+            padding: 25px;
+            border: 1px solid #333;
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .sidebar h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #f0f0f0;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .categories {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .category-item {
+            padding: 8px 12px;
+            background-color: #2a2a2a;
+            border-left: 3px solid #555;
+            border-radius: 4px;
+            color: #c0c0c0;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-item:hover {
+            background-color: #333;
+            border-left-color: #888;
+            color: #e0e0e0;
+        }
+
+        .category-item.active {
+            background-color: #333;
+            border-left-color: #888;
+            color: #e0e0e0;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #252525;
+            border-top: 1px solid #404040;
+            padding: 20px;
+            margin-top: 40px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            nav {
+                flex-wrap: wrap;
+            }
+
+            nav a {
+                padding: 10px 16px;
+                font-size: 12px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>📐 Matemáticas & Animaciones</h1>
+            <nav>
+                <a href="/" {% if page.url == '/' %}class="active"{% endif %}>Inicio</a>
+                <a href="/blog" {% if page.url contains 'blog' %}class="active"{% endif %}>Blog</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- Contenido Principal -->
+        <div class="content">
+            {{ content }}
+        </div>
+
+        <!-- Barra Lateral -->
+        <aside class="sidebar">
+            <h3>📁 Categorías</h3>
+            <div class="categories">
+                <div class="category-item">Análisis</div>
+                <div class="category-item">Geometría</div>
+                <div class="category-item">Fractales</div>
+                <div class="category-item">Sistemas Dinámicos</div>
+                <div class="category-item">Trigonometría</div>
+                <div class="category-item">Topología</div>
+                <div class="category-item">Fourier</div>
+                <div class="category-item">Análisis Complejo</div>
+            </div>
+        </aside>
+    </div>
+
     {% include footer.html %}
-  </body>
+
+    <script>
+        // Agregar interactividad a las categorías
+        document.querySelectorAll('.category-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
 </html>
