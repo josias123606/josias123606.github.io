@@ -270,3 +270,29 @@ var AnimManager = (function() {
     });
 })();
 </script>
+
+<!-- ═══════════════════════════════════════
+     ENTRADAS CON CATEGORÍA "Animaciones"
+     Se añaden aquí automáticamente
+═══════════════════════════════════════ -->
+{% assign anim_posts = site.posts | where_exp: "post", "post.categories contains 'Animaciones'" %}
+{% if anim_posts.size > 0 %}
+<div style="margin-top:40px;padding-top:30px;border-top:2px solid #333">
+    <h2 style="color:#f0f0f0;font-size:20px;margin-bottom:6px">📝 Entradas de Animaciones</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:24px">Cada entrada incluye la animación interactiva y su explicación matemática.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+        {% for post in anim_posts %}
+        <a href="{{ post.url }}" style="text-decoration:none;display:block;background:#2a2a2a;border:1px solid #383838;border-radius:8px;padding:20px;transition:border-color .2s,background .2s" onmouseover="this.style.borderColor='#555';this.style.background='#303030'" onmouseout="this.style.borderColor='#383838';this.style.background='#2a2a2a'">
+            <p style="font-size:11px;color:#666;margin-bottom:8px">{{ post.date | date: "%d de %B, %Y" }}</p>
+            <h3 style="color:#e0e0e0;font-size:15px;margin-bottom:10px;line-height:1.4">{{ post.title }}</h3>
+            <p style="color:#888;font-size:12px;line-height:1.5;margin-bottom:12px">{{ post.excerpt | strip_html | truncatewords: 18 }}</p>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">
+                {% for cat in post.categories %}
+                <span style="background:#333;padding:2px 8px;border-radius:4px;font-size:11px;color:#999">{{ cat }}</span>
+                {% endfor %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
