@@ -3,6 +3,19 @@ layout: default
 title: Generador de Problemas al Azar
 ---
 
+<!-- CONFIGURACIÓN DE LIBRERÍA MATEMÁTICA (MATHJAX) -->
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    processEscapes: true
+  }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+<!-- TUS ESTILOS -->
 <style>
 .olim-header{margin-bottom:28px}
 .olim-header h2{color:#f0f0f0;font-size:22px;margin-bottom:6px}
@@ -40,6 +53,7 @@ title: Generador de Problemas al Azar
 .attempt-hint{font-size:11px;color:#666;margin-top:6px}
 </style>
 
+<!-- ESTRUCTURA HTML -->
 <div class="olim-header">
     <h2>🎲 Generador de Problemas al Azar</h2>
     <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales. Filtra por tema y nivel.</p>
@@ -84,6 +98,7 @@ title: Generador de Problemas al Azar
     </div>
 </div>
 
+<!-- LÓGICA DE JAVASCRIPT -->
 <script>
 (function(){
     var DS         = 'ShadenA/MathNet';
@@ -100,7 +115,6 @@ title: Generador de Problemas al Azar
 
     var DIFF_INTL    = ['imo','usamo','isl','shortlist','putnam'];
     var DIFF_REG     = ['balkan','ibero','apmo','nordic','baltic','benelux','caucasus','mediterran','pan african','south east'];
-
 
     function rowsUrl(offset){
         return BASE + '/rows?dataset=' + encodeURIComponent(DS)
@@ -205,7 +219,7 @@ title: Generador de Problemas al Azar
     };
 })();
 
-/* Shared helpers exposed globally for problema-del-dia too */
+/* Shared helpers */
 function _renderProblem(p, textEl, solEl, metaEl){
     if(metaEl){
         var m='';
@@ -217,9 +231,11 @@ function _renderProblem(p, textEl, solEl, metaEl){
     }
     textEl.innerHTML = _md(p.problem_markdown||'');
     if(solEl) solEl.innerHTML = _md(p.solutions_markdown||'Solución no disponible.');
-    if(window.MathJax&&MathJax.typesetPromise){
+    
+    // Llamada a MathJax para renderizar las matemáticas
+    if(window.MathJax && MathJax.typesetPromise){
         var els=[textEl]; if(solEl) els.push(solEl);
-        MathJax.typesetPromise(els).catch(function(){});
+        MathJax.typesetPromise(els).catch(function(err){ console.log("MathJax error: ", err); });
     }
 }
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
