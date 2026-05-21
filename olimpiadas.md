@@ -15,7 +15,6 @@ window.MathJax = {
 </script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
-<!-- TUS ESTILOS -->
 <style>
 .olim-header{margin-bottom:28px}
 .olim-header h2{color:#f0f0f0;font-size:22px;margin-bottom:6px}
@@ -53,7 +52,6 @@ window.MathJax = {
 .attempt-hint{font-size:11px;color:#666;margin-top:6px}
 </style>
 
-<!-- ESTRUCTURA HTML -->
 <div class="olim-header">
     <h2>🎲 Generador de Problemas al Azar</h2>
     <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales. Filtra por tema y nivel.</p>
@@ -98,18 +96,18 @@ window.MathJax = {
     </div>
 </div>
 
-<!-- LÓGICA DE JAVASCRIPT -->
 <script>
 (function(){
     var DS         = 'ShadenA/MathNet';
     var BASE       = 'https://datasets-server.huggingface.co';
     var BATCH      = 100;
-    var MAX_TRY    = 8;
+    var MAX_TRY    = 5; 
     var lastId     = null;
     var activeTopic= 'todas';
     var activeDiff = 'todas';
 
-    var _cfg   = 'all';
+    // CORRECCIÓN: La API de Hugging Face ahora exige que config sea 'default' y no 'all'
+    var _cfg   = 'default'; 
     var _split = 'train';
     var _total = 27817;
 
@@ -174,8 +172,17 @@ window.MathJax = {
             seen.push(offset);
 
             try {
-                var r=await fetch(rowsUrl(offset));
-                if(!r.ok){ if(attempt===MAX_TRY-1) throw new Error('HTTP '+r.status); continue; }
+                var url = rowsUrl(offset);
+                var r = await fetch(url);
+
+                if(!r.ok){
+                    if(r.status === 404) {
+                        throw new Error("El archivo del compendio fue movido de los servidores. Revisa la URL.");
+                    }
+                    if(attempt === MAX_TRY-1) throw new Error('HTTP ' + r.status);
+                    continue;
+                }
+                
                 var d=await r.json();
                 if(!d.rows||!d.rows.length) continue;
 
@@ -186,9 +193,10 @@ window.MathJax = {
                 if(fresh.length) cands=fresh;
                 if(cands.length) found=cands[Math.floor(Math.random()*cands.length)];
             } catch(e){
-                if(attempt===MAX_TRY-1){
-                    setStatus('⚠ Error: '+e.message+'. Verifica tu conexión e intenta de nuevo.',true);
-                    setLoading(false); return;
+                if(e.message.includes("404") || e.message.includes("fetch") || attempt === MAX_TRY-1){
+                    setStatus('⚠ Error de conexión: '+e.message, true);
+                    setLoading(false); 
+                    return;
                 }
             }
             if(!found && attempt<MAX_TRY-1)
@@ -198,7 +206,7 @@ window.MathJax = {
         document.getElementById('attemptHint').textContent='';
 
         if(!found){
-            setStatus('No se encontraron problemas con estos filtros. Prueba una combinación diferente.',true);
+            setStatus('No se encontraron problemas con estos filtros. Prueba otra combinación.',true);
             setLoading(false); return;
         }
 
@@ -219,7 +227,6 @@ window.MathJax = {
     };
 })();
 
-/* Shared helpers */
 function _renderProblem(p, textEl, solEl, metaEl){
     if(metaEl){
         var m='';
@@ -232,7 +239,7 @@ function _renderProblem(p, textEl, solEl, metaEl){
     textEl.innerHTML = _md(p.problem_markdown||'');
     if(solEl) solEl.innerHTML = _md(p.solutions_markdown||'Solución no disponible.');
     
-    // Llamada a MathJax para renderizar las matemáticas
+    // Convertir las fórmulas matemáticas con MathJax
     if(window.MathJax && MathJax.typesetPromise){
         var els=[textEl]; if(solEl) els.push(solEl);
         MathJax.typesetPromise(els).catch(function(err){ console.log("MathJax error: ", err); });
