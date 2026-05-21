@@ -21,6 +21,13 @@
 <loc>http://0.0.0.0:5000/</loc>
 </url>
 <url>
+<loc>http://0.0.0.0:5000/olimpiadas/</loc>
+</url>
+<url>
 <loc>http://0.0.0.0:5000/sobre-el-autor/</loc>
+</url>
+<url>
+<loc>http://0.0.0.0:5000/attached_assets/logoHref.html</loc>
+<lastmod>2026-05-21T14:43:27+00:00</lastmod>
 </url>
 </urlset>
