@@ -42,7 +42,7 @@ title: Generador de Problemas al Azar
 
 <div class="olim-header">
     <h2>🎲 Generador de Problemas al Azar</h2>
-    <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales. Filtra por tema y nivel de competencia.</p>
+    <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales. Filtra por tema y nivel.</p>
 </div>
 
 <div class="filter-section">
@@ -67,9 +67,9 @@ title: Generador de Problemas al Azar
     </div>
 </div>
 
-<button class="main-btn" id="randomBtn" onclick="fetchRandomProblem()">
+<p><button class="main-btn" id="randomBtn" onclick="fetchRandomProblem()">
     🎲 Problema aleatorio
-</button>
+</button></p>
 <div class="attempt-hint" id="attemptHint"></div>
 <div class="status-msg" id="statusMsg"></div>
 
@@ -89,7 +89,7 @@ title: Generador de Problemas al Azar
     var DS         = 'ShadenA/MathNet';
     var BASE       = 'https://datasets-server.huggingface.co';
     var BATCH      = 100;
-    var MAX_TRY    = 6;
+    var MAX_TRY    = 8;
     var lastId     = null;
     var activeTopic= 'todas';
     var activeDiff = 'todas';
