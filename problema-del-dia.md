@@ -18,18 +18,25 @@ window.MathJax = {
 .pdd-intro{color:#888;font-size:13px;margin-bottom:20px;line-height:1.6}
 .pdd-section{margin-bottom:36px}
 
-/* Contenedor del cronómetro */
-.timer-container {
+/* Panel Superior de Configuración (Idioma y Tiempo) */
+.pdd-control-panel {
     background: #1a2636;
     border: 1px solid #2e4a6e;
     border-radius: 8px;
-    padding: 12px 16px;
+    padding: 14px 18px;
     margin-bottom: 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.timer-block {
     font-size: 13px;
     color: #c8dff5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .timer-clock {
     font-family: monospace;
@@ -37,6 +44,32 @@ window.MathJax = {
     font-weight: bold;
     color: #8ab0d8;
     letter-spacing: 0.5px;
+}
+
+/* Selector de Idioma Global */
+.lang-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #c8dff5;
+    background: #24354a;
+    border: 1px solid #3a5e8a;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+.lang-selector select {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+}
+.lang-selector select option {
+    background: #1e1e1e;
+    color: #fff;
 }
 
 /* Control de Pestañas (Hoy / Ayer) */
@@ -63,34 +96,6 @@ window.MathJax = {
     border-bottom-color: #3a6090;
 }
 
-/* Selector de Idioma Optimizado */
-.lang-selector {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: #aaa;
-    background: #1c1c1c;
-    border: 1px solid #383838;
-    padding: 4px 10px;
-    border-radius: 6px;
-    height: 28px;
-}
-.lang-selector select {
-    background: transparent;
-    border: none;
-    color: #e0e0e0;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    outline: none;
-    padding-right: 4px;
-}
-.lang-selector select option {
-    background: #1e1e1e;
-    color: #fff;
-}
-
 /* Bloqueo estricto de selección de texto */
 .no-select {
     user-select: none !important;
@@ -101,8 +106,7 @@ window.MathJax = {
 
 /* Estructura de tarjetas */
 .problem-card{background:#1e1e1e;border:1px solid #333;border-radius:10px;overflow:hidden}
-.problem-head{padding:12px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-.meta-badges {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.problem-head{padding:14px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;align-items:center;}
 .p-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500}
 .p-badge.comp{background:#2a3a2a;color:#8ec88e;border:1px solid #3a5a3a}
 .p-badge.country{background:#2a2a3a;color:#8e9ec8;border:1px solid #3a3a5a}
@@ -129,12 +133,22 @@ window.MathJax = {
 </style>
 
 <p class="pdd-intro">
-    🌟 Problemas diarios obtenidos del compendio <strong style="color:#c0c0c0">MathNet</strong>. Intenta resolverlos por tu cuenta usando papel y lapiź antes de que se publique la solución oficial.
+    🌟 Problemas diarios obtenidos del compendio <strong style="color:#c0c0c0">MathNet</strong>. Intenta resolverlos por tu cuenta usando papel y lápiz antes de que se publique la solución oficial.
 </p>
 
-<div class="timer-container">
-    <span>⏳ Tiempo restante para el próximo reto:</span>
-    <span class="timer-clock" id="dailyTimer">00:00:00</span>
+<div class="pdd-control-panel">
+    <div class="timer-block">
+        <span>⏳ Siguiente reto en:</span>
+        <span class="timer-clock" id="dailyTimer">00:00:00</span>
+    </div>
+    
+    <div class="lang-selector">
+        🌐 <span>Idioma:</span>
+        <select id="langSelect" onchange="changeLanguage(this.value)">
+            <option value="original">Original (En)</option>
+            <option value="es">Español (Es)</option>
+        </select>
+    </div>
 </div>
 
 <div class="pdd-tabs">
@@ -145,13 +159,7 @@ window.MathJax = {
 <div class="pdd-section">
     <div id="problemCard" style="display:none">
         <div class="problem-head">
-            <div class="meta-badges" id="problemMeta"></div>
-            <div class="lang-selector">
-                🌐 <select id="langSelect" onchange="changeLanguage(this.value)">
-                    <option value="original">Original</option>
-                    <option value="es">Español</option>
-                </select>
-            </div>
+            <div id="problemMeta"></div>
         </div>
         <div class="problem-body">
             <div id="problemTextContainer">
@@ -167,7 +175,7 @@ window.MathJax = {
         </div>
     </div>
     
-    <div id="loadingMsg" class="loading-msg"><span class="spinner"></span> Cargando panel diario...</div>
+    <div id="loadingMsg" class="loading-msg"><span class="spinner"></span> Sincronizando panel diario...</div>
     <div class="status-msg" id="statusMsg"></div>
 </div>
 
@@ -176,9 +184,13 @@ window.MathJax = {
     var DS = 'ShadenA/MathNet';
     var BASE = 'https://datasets-server.huggingface.co';
     var currentMode = 'today'; 
-    var currentLang = 'original';
+    
+    // Cargar preferencia guardada del usuario de forma inmediata antes de renderizar nada
+    var currentLang = localStorage.getItem('pdd_lang') || 'original';
+    document.getElementById('langSelect').value = currentLang;
+
     var cachedData = { today: null, yesterday: null };
-    var translationCache = {}; // Almacena traducciones para no repetir peticiones API
+    var translationCache = {}; 
 
     function startTimer() {
         var clock = document.getElementById('dailyTimer');
@@ -223,13 +235,13 @@ window.MathJax = {
         document.getElementById('tabToday').classList.toggle('active', mode === 'today');
         document.getElementById('tabYesterday').classList.toggle('active', mode === 'yesterday');
         
-        // Resetear selector de idioma al cambiar de pestaña si lo deseas, o mantener el estado
         renderCurrentState();
     };
 
     window.changeLanguage = function(lang) {
         if(lang === currentLang) return;
         currentLang = lang;
+        localStorage.setItem('pdd_lang', lang); // Guardar configuración del lector
         renderCurrentState();
     };
 
@@ -269,15 +281,15 @@ window.MathJax = {
         }
     }
 
-    // Procesa la traducción asíncrona aislando bloques matemáticos para que no se arruinen
+    // Tokenizador ultra-resistente basado en invariantes numéricas lineales
     async function fetchTranslation(text, cacheKey) {
         if (!text) return '';
         
         var mathBlocks = [];
-        // Aislamos tanto $$...$$ como $...$ en un único arreglo ordenado
+        // Extraemos bloques de LaTeX y los sustituimos por identificadores numéricos puros que la API jamás traducirá
         var placeholderMd = text.replace(/\$\$[\s\S]*?\$\$|\$[\s\S]*?\$/g, function(match) {
             mathBlocks.push(match);
-            return ' ___MATH' + (mathBlocks.length - 1) + '___ ';
+            return ' ###' + (mathBlocks.length - 1) + '### ';
         });
 
         try {
@@ -287,17 +299,17 @@ window.MathJax = {
             var data = await res.json();
             var translated = data.responseData.translatedText;
 
-            // Restauramos las fórmulas matemáticas originales en sus posiciones exactas
+            // Reinsertamos los bloques matemáticos intactos
             for(var i = 0; i < mathBlocks.length; i++) {
-                // Soportamos posibles variaciones de espacios creadas por el traductor en el token
-                var rx = new RegExp('___ ?MATH' + i + ' ?___', 'g');
+                // El Regex captura variaciones de espacios colaterales introducidos por el motor de traducción
+                var rx = new RegExp('###\\s*' + i + '\\s*###', 'g');
                 translated = translated.replace(rx, mathBlocks[i]);
             }
             
             translationCache[cacheKey] = translated;
             return translated;
         } catch(e) {
-            return text; // Si falla la API por cuota o red, muestra el original sin romper la app
+            return text; // Fallback: si la API falla o excede cuotas, se muestra el texto nativo de forma limpia
         }
     }
 
@@ -359,7 +371,7 @@ window.MathJax = {
             solEl.innerHTML = _md(solContent);
         }
 
-        // CONTROL DE RENDERIZADO SEGÚN EL IDIOMA SELECCIONADO
+        // CONTROL E INTERSECCIÓN DE IDIOMAS ANTES DE RENDERIZAR EL CUERPO
         var rawProblemMd = p.problem_markdown || '';
         var cacheKey = p.id + '_' + currentMode;
 
@@ -368,9 +380,8 @@ window.MathJax = {
                 textEl.innerHTML = _md(translationCache[cacheKey]);
                 runMathJax();
             } else {
-                textEl.innerHTML = '<p><span class="spinner"></span> Traduciendo enunciado de forma segura...</p>';
+                textEl.innerHTML = '<p style="color:#888;"><span class="spinner"></span> Traduciendo enunciado de forma segura sin alterar LaTeX...</p>';
                 fetchTranslation(rawProblemMd, cacheKey).then(function(translatedText) {
-                    // Verificación de concurrencia: que el usuario no haya cambiado de vista mientras cargaba
                     var activeP = (currentMode === 'today') ? cachedData.today : cachedData.yesterday;
                     if(activeP && activeP.id === p.id && currentLang === 'es') {
                         textEl.innerHTML = _md(translatedText);
