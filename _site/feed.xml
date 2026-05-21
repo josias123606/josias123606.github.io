@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.4">Jekyll</generator><link href="http://0.0.0.0:5000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://0.0.0.0:5000/" rel="alternate" type="text/html" /><updated>2026-05-21T04:11:20+00:00</updated><id>http://0.0.0.0:5000/feed.xml</id><title type="html">Matemáticas &amp;amp; Animaciones</title><subtitle>Blog sobre matemáticas, teoría y animaciones visuales</subtitle><author><name>Josias</name></author><entry><title type="html">Mi primera entrada de blog</title><link href="http://0.0.0.0:5000/2026/05/20/mi-primer-post/" rel="alternate" type="text/html" title="Mi primera entrada de blog" /><published>2026-05-20T00:00:00+00:00</published><updated>2026-05-20T00:00:00+00:00</updated><id>http://0.0.0.0:5000/2026/05/20/mi-primer-post</id><content type="html" xml:base="http://0.0.0.0:5000/2026/05/20/mi-primer-post/"><![CDATA[<p>Bienvenido a mi primer post.</p>
+
+<h2 id="mis-objetivos">Mis objetivos</h2>
+<ul>
+  <li>Aprender a usar <strong>GitHub Pages</strong>.</li>
+  <li>Compartir mis apuntes.</li>
+</ul>
+
+<p>$x$</p>
+
+\[f(x)=\frac{1}{x}\]]]></content><author><name>Josias</name></author><summary type="html"><![CDATA[Bienvenido a mi primer post.]]></summary></entry></feed>

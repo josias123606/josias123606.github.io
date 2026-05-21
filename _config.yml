@@ -1,0 +1,26 @@
+title: "Matemáticas & Animaciones"
+description: "Blog sobre matemáticas, teoría y animaciones visuales"
+author: "Josias"
+baseurl: ""
+url: ""
+
+markdown: kramdown
+highlighter: rouge
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+kramdown:
+  input: GFM
+  math_engine: mathjax
+
+permalink: /:year/:month/:day/:title/
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - .replit
+  - .local
