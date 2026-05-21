@@ -5,8 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page.title %}{{ page.title }} - {% endif %}Mi Blog Matemático</title>
     <!-- MathJax para soporte LaTeX -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
     <style>
         * {
             margin: 0;
@@ -161,14 +172,17 @@
             margin-bottom: 12px;
         }
 
-        /* MathJax */
-        .math-block {
-            background-color: #1a1a1a;
-            padding: 15px;
-            border-left: 3px solid #555;
-            margin: 15px 0;
-            border-radius: 4px;
-            overflow-x: auto;
+        /* MathJax - sin sombreado para ecuaciones */
+        .content mjx-container {
+            background-color: transparent !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        /* Ecuaciones centradas */
+        .content mjx-container[display="true"] {
+            background-color: transparent !important;
+            margin: 15px 0 !important;
         }
 
         /* Barra lateral */
@@ -214,9 +228,14 @@
         }
 
         .category-item.active {
-            background-color: #333;
-            border-left-color: #888;
-            color: #e0e0e0;
+            background-color: #3a3a3a;
+            border-left-color: #aaa;
+            color: #ffffff;
+        }
+
+        /* Filtrado de posts */
+        .blog-post.hidden {
+            display: none;
         }
 
         /* Footer */
@@ -276,14 +295,15 @@
         <aside class="sidebar">
             <h3>📁 Categorías</h3>
             <div class="categories">
-                <div class="category-item">Análisis</div>
-                <div class="category-item">Geometría</div>
-                <div class="category-item">Fractales</div>
-                <div class="category-item">Sistemas Dinámicos</div>
-                <div class="category-item">Trigonometría</div>
-                <div class="category-item">Topología</div>
-                <div class="category-item">Fourier</div>
-                <div class="category-item">Análisis Complejo</div>
+                <div class="category-item" data-category="todas">Todas</div>
+                <div class="category-item" data-category="Análisis">Análisis</div>
+                <div class="category-item" data-category="Geometría">Geometría</div>
+                <div class="category-item" data-category="Fractales">Fractales</div>
+                <div class="category-item" data-category="Sistemas Dinámicos">Sistemas Dinámicos</div>
+                <div class="category-item" data-category="Trigonometría">Trigonometría</div>
+                <div class="category-item" data-category="Topología">Topología</div>
+                <div class="category-item" data-category="Fourier">Fourier</div>
+                <div class="category-item" data-category="Análisis Complejo">Análisis Complejo</div>
             </div>
         </aside>
     </div>
@@ -291,13 +311,34 @@
     {% include footer.html %}
 
     <script>
-        // Agregar interactividad a las categorías
+        // Filtrado de categorías
         document.querySelectorAll('.category-item').forEach(item => {
             item.addEventListener('click', function() {
+                const selectedCategory = this.getAttribute('data-category');
+                
+                // Actualizar estado activo
                 document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
                 this.classList.add('active');
+                
+                // Filtrar posts
+                const posts = document.querySelectorAll('.blog-post');
+                posts.forEach(post => {
+                    if (selectedCategory === 'todas') {
+                        post.classList.remove('hidden');
+                    } else {
+                        const categories = post.getAttribute('data-categories');
+                        if (categories && categories.includes(selectedCategory)) {
+                            post.classList.remove('hidden');
+                        } else {
+                            post.classList.add('hidden');
+                        }
+                    }
+                });
             });
         });
+
+        // Marcar "Todas" por defecto
+        document.querySelector('[data-category="todas"]').classList.add('active');
     </script>
 </body>
 </html>
