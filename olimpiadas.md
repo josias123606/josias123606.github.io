@@ -3,7 +3,6 @@ layout: default
 title: Generador de Problemas al Azar
 ---
 
-<!-- CONFIGURACIÓN DE LIBRERÍA MATEMÁTICA (MATHJAX) -->
 <script>
 window.MathJax = {
   tex: {
@@ -25,6 +24,11 @@ window.MathJax = {
 .f-btn{padding:6px 14px;background:#2a2a2a;border:1px solid #404040;border-radius:20px;color:#a0a0a0;font-size:12px;cursor:pointer;transition:all .15s;user-select:none}
 .f-btn:hover{background:#333;color:#d0d0d0;border-color:#555}
 .f-btn.on{background:#3a3a3a;border-color:#888;color:#fff;font-weight:600}
+
+/* Estilos para el selector de idioma desplegable */
+.lang-select {padding:8px 14px;background:#2a2a2a;border:1px solid #404040;border-radius:6px;color:#d0d0d0;font-size:13px;cursor:pointer;outline:none;transition:all .15s;min-width:200px}
+.lang-select:hover {border-color:#666;background:#333}
+
 .main-btn{margin-top:22px;padding:11px 28px;background:#2e4a6e;border:1px solid #3a6090;border-radius:8px;color:#c8dff5;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.3px}
 .main-btn:hover:not(:disabled){background:#3a5e8a;border-color:#4d7ab0;color:#e0efff;transform:translateY(-1px)}
 .main-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
@@ -32,13 +36,13 @@ window.MathJax = {
 .status-msg.err{color:#e07070}
 .problem-card{margin-top:28px;background:#1e1e1e;border:1px solid #333;border-radius:10px;overflow:hidden;display:none}
 .problem-card.show{display:block}
-.problem-head{padding:16px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.problem-head{padding:18px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;flex-direction:column;gap:10px}
+.problem-source-title{font-size:16px;color:#ffffff;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:6px}
+.problem-tags-row{display:flex;flex-wrap:wrap;gap:6px}
+
 .p-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500}
-.p-badge.comp{background:#2a3a2a;color:#8ec88e;border:1px solid #3a5a3a}
-.p-badge.year{background:#3a2a24;color:#e8b88e;border:1px solid #5a3a2a}
-.p-badge.country{background:#2a2a3a;color:#8e9ec8;border:1px solid #3a3a5a}
-.p-badge.topic{background:#3a2a2a;color:#c88e8e;border:1px solid #5a3a3a}
-.p-badge.num{background:#3a3a2a;color:#c8c88e;border:1px solid #5a5a3a}
+.p-badge.topic {background:#3a2a2a;color:#c88e8e;border:1px solid #5a3a3a}
 .problem-body{padding:24px}
 .problem-text{color:#d8d8d8;font-size:15px;line-height:1.85}
 .problem-text p{margin:10px 0}
@@ -56,7 +60,7 @@ window.MathJax = {
 
 <div class="olim-header">
     <h2>🎲 Generador de Problemas al Azar</h2>
-    <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales. Filtra por tema y nivel.</p>
+    <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales.</p>
 </div>
 
 <div class="filter-section">
@@ -80,6 +84,17 @@ window.MathJax = {
         <div class="f-btn" data-diff="regional">Regional</div>
         <div class="f-btn" data-diff="internacional">Internacional (IMO / USAMO / APMO)</div>
     </div>
+</div>
+
+<div class="filter-section">
+    <div class="filter-label">Idioma de Visualización</div>
+    <select class="lang-select" id="langSelect">
+        <option value="original">📄 Idioma Original (Compendio)</option>
+        <option value="es">🇪🇸 Traducir a Español</option>
+        <option value="en">🇺🇸 Traducir a Inglés</option>
+        <option value="fr">🇫🇷 Traducir a Francés</option>
+        <option value="pt">🇵🇹 Traducir a Portugués</option>
+    </select>
 </div>
 
 <p><button class="main-btn" id="randomBtn" onclick="fetchRandomProblem()">
@@ -117,6 +132,9 @@ window.MathJax = {
     var DIFF_REG     = ['balkan','ibero','apmo','nordic','baltic','benelux','caucasus','mediterran','pan african','south east'];
     var DIFF_MIT     = ['mit', 'hmmt', 'harvard', 'putnam'];
 
+    // Guardar el problema globalmente para poder cambiar el idioma dinámicamente
+    window.currentProblem = null;
+
     document.getElementById('topicGroup').addEventListener('click', function(e){
         var b=e.target.closest('.f-btn'); if(!b) return;
         document.querySelectorAll('#topicGroup .f-btn').forEach(function(x){x.classList.remove('on');});
@@ -126,6 +144,16 @@ window.MathJax = {
         var b=e.target.closest('.f-btn'); if(!b) return;
         document.querySelectorAll('#diffGroup .f-btn').forEach(function(x){x.classList.remove('on');});
         b.classList.add('on'); activeDiff=b.dataset.diff;
+    });
+
+    // Evento para retraducir inmediatamente si el usuario cambia el menú desplegable
+    document.getElementById('langSelect').addEventListener('change', function(){
+        if(window.currentProblem) {
+            _renderProblem(window.currentProblem,
+                document.getElementById('problemText'),
+                document.getElementById('solutionText'),
+                document.getElementById('problemMeta'));
+        }
     });
 
     function matchesTopic(row){
@@ -217,10 +245,13 @@ window.MathJax = {
         }
 
         lastId=found.id;
-        _renderProblem(found,
+        window.currentProblem = found; // Guardamos la referencia global
+        
+        await _renderProblem(found,
             document.getElementById('problemText'),
             document.getElementById('solutionText'),
             document.getElementById('problemMeta'));
+            
         document.getElementById('problemCard').className='problem-card show';
         document.getElementById('problemCard').scrollIntoView({behavior:'smooth',block:'start'});
         setLoading(false);
@@ -233,46 +264,104 @@ window.MathJax = {
     };
 })();
 
-/* --- RENDERIZADO DEL PROBLEMA Y SOLUCIONES --- */
-function _renderProblem(p, textEl, solEl, metaEl){
+/* FUNCIÓN AUXILIAR DE TRADUCCIÓN QUE PROTEGE EL CONTENIDO LATEX */
+async function _translateMarkdown(text, targetLang) {
+    if (!text || targetLang === 'original') return text;
+    
+    var mathBlocks = [];
+    // 1. Proteger ecuaciones en bloque $$...$$
+    var protectedText = text.replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
+        mathBlocks.push(match);
+        return ' XMathX' + (mathBlocks.length - 1) + 'X ';
+    });
+    // 2. Proteger ecuaciones en línea $...$
+    protectedText = protectedText.replace(/\$([\s\S]*?)\$/g, function(match) {
+        mathBlocks.push(match);
+        return ' XMathX' + (mathBlocks.length - 1) + 'X ';
+    });
+    
+    try {
+        var url = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" + targetLang + "&dt=t&q=" + encodeURIComponent(protectedText);
+        var res = await fetch(url);
+        if (!res.ok) return text;
+        var json = await res.json();
+        
+        var translatedText = "";
+        if (json && json[0]) {
+            for (var i = 0; i < json[0].length; i++) {
+                if (json[0][i][0]) translatedText += json[0][i][0];
+            }
+        }
+        
+        // 3. Restaurar los bloques de LaTeX originales de forma exacta
+        for (var j = 0; j < mathBlocks.length; j++) {
+            var regex = new RegExp('XMathX' + j + 'X', 'gi');
+            translatedText = translatedText.replace(regex, mathBlocks[j]);
+        }
+        return translatedText;
+    } catch (e) {
+        console.error("Error en la traducción del texto:", e);
+        return text;
+    }
+}
+
+/* RENDERIZADO DEL PROBLEMA ACTUALIZADO (AHORA ASÍNCRONO POR TRADUCCIÓN) */
+async function _renderProblem(p, textEl, solEl, metaEl){
+    var targetLang = document.getElementById('langSelect').value;
+
     if(metaEl){
-        var m='';
-        var comp = p.competition || '';
+        var comp = p.competition || 'Competencia Desconocida';
         var yr = p.year || '';
-        var num = p.problem_number || '';
+        var num = p.problem_number || p.number || '';
         var country = p.country || '';
         
-        if(comp) m+='<span class="p-badge comp">🏅 '+_esc(comp)+'</span>';
-        if(yr) m+='<span class="p-badge year">📅 Año '+_esc(yr)+'</span>';
-        if(country) m+='<span class="p-badge country">🌍 '+_esc(country)+'</span>';
-        if(num) m+='<span class="p-badge num">🔢 N° '+_esc(num)+'</span>';
+        var titleStr = '🏅 ' + _esc(comp);
+        if(yr) titleStr += ' ' + _esc(yr);
+        if(num) titleStr += ' — Problem ' + _esc(num);
+        if(country) titleStr += ' (' + _esc(country) + ')';
         
-        var ts=p.topics_flat; if(!Array.isArray(ts)) ts=ts?[ts]:[];
-        ts.slice(0,3).forEach(function(t){ m+='<span class="p-badge topic">📐 '+_esc(String(t).split('>').pop().trim())+'</span>'; });
-        metaEl.innerHTML=m;
+        var m = '<div class="problem-source-title">' + titleStr + '</div>';
+        m += '<div class="problem-tags-row">';
+        var ts = p.topics_flat; 
+        if(!Array.isArray(ts)) ts = ts ? [ts] : [];
+        ts.slice(0,3).forEach(function(t){ 
+            m += '<span class="p-badge topic">📐 ' + _esc(String(t).split('>').pop().trim()) + '</span>'; 
+        });
+        m += '</div>';
+        metaEl.innerHTML = m;
     }
     
-    textEl.innerHTML = _md(p.problem_markdown||'');
-    
-    // --- CORRECCIÓN DE SOLUCIONES VACÍAS ---
-    if(solEl){
-        var rawSol = p.solutions_markdown;
-        var solContent = "";
+    var rawProb = p.problem_markdown || '';
+    var rawSol = p.solutions_markdown;
+    var solContent = "";
 
-        // Verificamos si es una lista Y si tiene elementos reales adentro
-        if (Array.isArray(rawSol) && rawSol.length > 0) {
-            solContent = rawSol.join('\n\n---\n\n').trim();
-        } else if (typeof rawSol === 'string' && rawSol.trim() !== '') {
-            solContent = rawSol.trim();
-        }
-
-        // Si después de verificar resulta que está vacío, ponemos el mensaje amigable
-        if (!solContent || solContent === "") {
-            solContent = '*Lo sentimos, este problema no tiene una solución registrada en la base de datos oficial.* 😔';
-        }
-
-        solEl.innerHTML = _md(solContent);
+    if (Array.isArray(rawSol) && rawSol.length > 0) {
+        solContent = rawSol.join('\n\n---\n\n').trim();
+    } else if (typeof rawSol === 'string' && rawSol.trim() !== '') {
+        solContent = rawSol.trim();
     }
+
+    var noSolRegistered = false;
+    if (!solContent || solContent === "") {
+        solContent = '*Lo sentimos, este problema no tiene una solución registrada en la base de datos oficial.* 😔';
+        noSolRegistered = true;
+    }
+
+    // Si el usuario quiere traducción, procesamos las cadenas antes del parser Markdown
+    if (targetLang !== 'original') {
+        var statusEl = document.getElementById('statusMsg');
+        if(statusEl) statusEl.innerHTML = '✨ Traduciendo enunciados...';
+        
+        rawProb = await _translateMarkdown(rawProb, targetLang);
+        if(!noSolRegistered) {
+            solContent = await _translateMarkdown(solContent, targetLang);
+        }
+        
+        if(statusEl) statusEl.innerHTML = '';
+    }
+    
+    textEl.innerHTML = _md(rawProb);
+    solEl.innerHTML = _md(solContent);
     
     if(window.MathJax && MathJax.typesetPromise){
         var els=[textEl]; if(solEl) els.push(solEl);
@@ -282,7 +371,6 @@ function _renderProblem(p, textEl, solEl, metaEl){
 
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* --- CORRECCIÓN CRÍTICA DE LATEX --- */
 function _md(md){
     if(!md) return '';
     
