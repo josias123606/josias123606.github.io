@@ -35,7 +35,7 @@ window.MathJax = {
 .problem-head{padding:16px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .p-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500}
 .p-badge.comp{background:#2a3a2a;color:#8ec88e;border:1px solid #3a5a3a}
-.p-badge.year{background:#3a2a24;color:#e8b88e;border:1px solid #5a3a2a} /* Nuevo color para el año */
+.p-badge.year{background:#3a2a24;color:#e8b88e;border:1px solid #5a3a2a}
 .p-badge.country{background:#2a2a3a;color:#8e9ec8;border:1px solid #3a3a5a}
 .p-badge.topic{background:#3a2a2a;color:#c88e8e;border:1px solid #5a3a3a}
 .p-badge.num{background:#3a3a2a;color:#c8c88e;border:1px solid #5a5a3a}
@@ -233,7 +233,7 @@ window.MathJax = {
     };
 })();
 
-/* --- RENDERIZADO DEL PROBLEMA Y SUS ETIQUETAS --- */
+/* --- RENDERIZADO DEL PROBLEMA Y SOLUCIONES --- */
 function _renderProblem(p, textEl, solEl, metaEl){
     if(metaEl){
         var m='';
@@ -242,13 +242,9 @@ function _renderProblem(p, textEl, solEl, metaEl){
         var num = p.problem_number || '';
         var country = p.country || '';
         
-        // Aquí se crea la etiqueta de competencia
         if(comp) m+='<span class="p-badge comp">🏅 '+_esc(comp)+'</span>';
-        // 🎉 NUEVO: Aquí se crea la etiqueta del AÑO (Si existe en la base de datos)
         if(yr) m+='<span class="p-badge year">📅 Año '+_esc(yr)+'</span>';
-        // Etiqueta del país
         if(country) m+='<span class="p-badge country">🌍 '+_esc(country)+'</span>';
-        // Número del problema
         if(num) m+='<span class="p-badge num">🔢 N° '+_esc(num)+'</span>';
         
         var ts=p.topics_flat; if(!Array.isArray(ts)) ts=ts?[ts]:[];
@@ -258,12 +254,24 @@ function _renderProblem(p, textEl, solEl, metaEl){
     
     textEl.innerHTML = _md(p.problem_markdown||'');
     
+    // --- CORRECCIÓN DE SOLUCIONES VACÍAS ---
     if(solEl){
-        if(p.solutions_markdown && Array.isArray(p.solutions_markdown)){
-            solEl.innerHTML = _md(p.solutions_markdown.join('\n\n---\n\n'));
-        } else {
-            solEl.innerHTML = _md(p.solutions_markdown||'Solución no disponible.');
+        var rawSol = p.solutions_markdown;
+        var solContent = "";
+
+        // Verificamos si es una lista Y si tiene elementos reales adentro
+        if (Array.isArray(rawSol) && rawSol.length > 0) {
+            solContent = rawSol.join('\n\n---\n\n').trim();
+        } else if (typeof rawSol === 'string' && rawSol.trim() !== '') {
+            solContent = rawSol.trim();
         }
+
+        // Si después de verificar resulta que está vacío, ponemos el mensaje amigable
+        if (!solContent || solContent === "") {
+            solContent = '*Lo sentimos, este problema no tiene una solución registrada en la base de datos oficial.* 😔';
+        }
+
+        solEl.innerHTML = _md(solContent);
     }
     
     if(window.MathJax && MathJax.typesetPromise){
