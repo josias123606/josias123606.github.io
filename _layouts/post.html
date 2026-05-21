@@ -2,7 +2,7 @@
 layout: default
 ---
 
-<article class="blog-post">
+<article class="blog-post" data-categories="{{ page.categories | join: ', ' }}">
     <h2>{{ page.title }}</h2>
     <div class="blog-post-meta">
         <span>{{ page.date | date: "%d de %B, %Y" }}</span>
