@@ -63,6 +63,34 @@ window.MathJax = {
     border-bottom-color: #3a6090;
 }
 
+/* Selector de Idioma Optimizado */
+.lang-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #aaa;
+    background: #1c1c1c;
+    border: 1px solid #383838;
+    padding: 4px 10px;
+    border-radius: 6px;
+    height: 28px;
+}
+.lang-selector select {
+    background: transparent;
+    border: none;
+    color: #e0e0e0;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    padding-right: 4px;
+}
+.lang-selector select option {
+    background: #1e1e1e;
+    color: #fff;
+}
+
 /* Bloqueo estricto de selección de texto */
 .no-select {
     user-select: none !important;
@@ -73,7 +101,8 @@ window.MathJax = {
 
 /* Estructura de tarjetas */
 .problem-card{background:#1e1e1e;border:1px solid #333;border-radius:10px;overflow:hidden}
-.problem-head{padding:16px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.problem-head{padding:12px 20px;background:#242424;border-bottom:1px solid #2e2e2e;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.meta-badges {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .p-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500}
 .p-badge.comp{background:#2a3a2a;color:#8ec88e;border:1px solid #3a5a3a}
 .p-badge.country{background:#2a2a3a;color:#8e9ec8;border:1px solid #3a3a5a}
@@ -100,7 +129,7 @@ window.MathJax = {
 </style>
 
 <p class="pdd-intro">
-    🌟 Problemas diarios obtenidos del compendio <strong style="color:#c0c0c0">MathNet</strong>. Intenta resolverlos por tu cuenta usando papel y lápiz antes de que se publique la solución oficial.
+    🌟 Problemas diarios obtenidos del compendio <strong style="color:#c0c0c0">MathNet</strong>. Intenta resolverlos por tu cuenta usando papel y lapiź antes de que se publique la solución oficial.
 </p>
 
 <div class="timer-container">
@@ -115,7 +144,15 @@ window.MathJax = {
 
 <div class="pdd-section">
     <div id="problemCard" style="display:none">
-        <div class="problem-head" id="problemMeta"></div>
+        <div class="problem-head">
+            <div class="meta-badges" id="problemMeta"></div>
+            <div class="lang-selector">
+                🌐 <select id="langSelect" onchange="changeLanguage(this.value)">
+                    <option value="original">Original</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+        </div>
         <div class="problem-body">
             <div id="problemTextContainer">
                 <div class="problem-text" id="problemText"></div>
@@ -139,9 +176,10 @@ window.MathJax = {
     var DS = 'ShadenA/MathNet';
     var BASE = 'https://datasets-server.huggingface.co';
     var currentMode = 'today'; 
+    var currentLang = 'original';
     var cachedData = { today: null, yesterday: null };
+    var translationCache = {}; // Almacena traducciones para no repetir peticiones API
 
-    // Inicializar el reloj de cuenta regresiva hacia las 12:00 AM
     function startTimer() {
         var clock = document.getElementById('dailyTimer');
         setInterval(function(){
@@ -150,7 +188,7 @@ window.MathJax = {
             var diff = midnight - now;
 
             if (diff <= 0) {
-                location.reload(); // Recarga automática al dar las 12:00 AM
+                location.reload();
                 return;
             }
 
@@ -161,12 +199,11 @@ window.MathJax = {
         }, 1000);
     }
 
-    // Algoritmo matemático hash determinista para fijar un único problema por día según calendario
     function getIndicesForDate(date) {
         var y = date.getFullYear();
         var m = String(date.getMonth() + 1).padStart(2, '0');
         var d = String(date.getDate()).padStart(2, '0');
-        var dateStr = y + '-' + m + '-' + d; // Ejemplo: "2026-05-21"
+        var dateStr = y + '-' + m + '-' + d;
 
         var hash = 0;
         for (var i = 0; i < dateStr.length; i++) {
@@ -175,7 +212,7 @@ window.MathJax = {
         hash = Math.abs(hash);
 
         var offset = hash % 27500; 
-        var itemIndex = (hash >> 3) % 40; // Indice de seguridad dentro del lote cargado
+        var itemIndex = (hash >> 3) % 40;
         return { offset: offset, index: itemIndex };
     }
 
@@ -186,6 +223,13 @@ window.MathJax = {
         document.getElementById('tabToday').classList.toggle('active', mode === 'today');
         document.getElementById('tabYesterday').classList.toggle('active', mode === 'yesterday');
         
+        // Resetear selector de idioma al cambiar de pestaña si lo deseas, o mantener el estado
+        renderCurrentState();
+    };
+
+    window.changeLanguage = function(lang) {
+        if(lang === currentLang) return;
+        currentLang = lang;
         renderCurrentState();
     };
 
@@ -198,7 +242,6 @@ window.MathJax = {
         var yesterdayParams = getIndicesForDate(yesterday);
 
         try {
-            // 1. Carga del problema determinista de hoy
             var rToday = await fetch(BASE + '/rows?dataset='+encodeURIComponent(DS)+'&config=all&split=train&offset='+todayParams.offset+'&length=100');
             if(rToday.ok) {
                 var dToday = await rToday.json();
@@ -207,7 +250,6 @@ window.MathJax = {
                 }
             }
 
-            // 2. Carga del problema determinista de ayer
             var rYest = await fetch(BASE + '/rows?dataset='+encodeURIComponent(DS)+'&config=all&split=train&offset='+yesterdayParams.offset+'&length=100');
             if(rYest.ok) {
                 var dYest = await rYest.json();
@@ -227,6 +269,38 @@ window.MathJax = {
         }
     }
 
+    // Procesa la traducción asíncrona aislando bloques matemáticos para que no se arruinen
+    async function fetchTranslation(text, cacheKey) {
+        if (!text) return '';
+        
+        var mathBlocks = [];
+        // Aislamos tanto $$...$$ como $...$ en un único arreglo ordenado
+        var placeholderMd = text.replace(/\$\$[\s\S]*?\$\$|\$[\s\S]*?\$/g, function(match) {
+            mathBlocks.push(match);
+            return ' ___MATH' + (mathBlocks.length - 1) + '___ ';
+        });
+
+        try {
+            var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(placeholderMd) + '&langpair=en|es';
+            var res = await fetch(url);
+            if(!res.ok) throw new Error();
+            var data = await res.json();
+            var translated = data.responseData.translatedText;
+
+            // Restauramos las fórmulas matemáticas originales en sus posiciones exactas
+            for(var i = 0; i < mathBlocks.length; i++) {
+                // Soportamos posibles variaciones de espacios creadas por el traductor en el token
+                var rx = new RegExp('___ ?MATH' + i + ' ?___', 'g');
+                translated = translated.replace(rx, mathBlocks[i]);
+            }
+            
+            translationCache[cacheKey] = translated;
+            return translated;
+        } catch(e) {
+            return text; // Si falla la API por cuota o red, muestra el original sin romper la app
+        }
+    }
+
     function renderCurrentState() {
         var p = (currentMode === 'today') ? cachedData.today : cachedData.yesterday;
         var textContainer = document.getElementById('problemTextContainer');
@@ -242,30 +316,19 @@ window.MathJax = {
             return;
         }
 
-        // Resetear caja de visualización de soluciones
         document.getElementById('solutionBox').classList.remove('show');
         document.getElementById('solToggle').textContent = '👁 Ver solución';
 
         if(currentMode === 'today') {
-            // REGLAS ESTRICTAS PARA EL PROBLEMA ACTIVO DE HOY:
-            // 1. Ocultar origen y metadatos históricos por completo
             metaEl.innerHTML = '<span class="p-badge locked">🔒 Fuente y Origen: Desbloqueables en 24 horas</span>';
-            
-            // 2. Aplicar clases CSS antirrobo de datos
             textContainer.className = "no-select";
-            
-            // 3. Bloqueadores por JavaScript complementarios en caliente
             textContainer.oncontextmenu = function(e){ e.preventDefault(); return false; };
             textContainer.oncopy = function(e){ e.preventDefault(); return false; };
             textContainer.onkeydown = function(e){
                 if(e.ctrlKey && (e.keyCode === 67 || e.keyCode === 65 || e.keyCode === 85)) { e.preventDefault(); return false; }
             };
-
-            // 4. Desactivar botón de soluciones por completo
             solArea.style.display = 'none';
         } else {
-            // REGLAS PARA EL ARCHIVO HISTÓRICO DE AYER:
-            // 1. Mostrar origen completo del problema (Fuentes liberadas)
             var m = '';
             if(p.competition) m += '<span class="p-badge comp">🏅 ' + _esc(p.competition) + '</span>';
             if(p.country) m += '<span class="p-badge country">🌍 ' + _esc(p.country) + '</span>';
@@ -276,13 +339,11 @@ window.MathJax = {
             });
             metaEl.innerHTML = m;
 
-            // 2. Liberar capacidades de manipulación de texto y copias legítimas
             textContainer.className = "";
             textContainer.oncontextmenu = null;
             textContainer.oncopy = null;
             textContainer.onkeydown = null;
 
-            // 3. Habilitar panel de soluciones
             solArea.style.display = 'block';
             
             var rawSol = p.solutions_markdown;
@@ -298,14 +359,36 @@ window.MathJax = {
             solEl.innerHTML = _md(solContent);
         }
 
-        // Renderizado del enunciado
-        textEl.innerHTML = _md(p.problem_markdown || '');
+        // CONTROL DE RENDERIZADO SEGÚN EL IDIOMA SELECCIONADO
+        var rawProblemMd = p.problem_markdown || '';
+        var cacheKey = p.id + '_' + currentMode;
 
-        // Compilación asíncrona de MathJax evitando romper estructuras LaTeX
-        if(window.MathJax && MathJax.typesetPromise){
-            var targets = [textEl];
-            if(currentMode === 'yesterday') targets.push(solEl);
-            MathJax.typesetPromise(targets).catch(function(err){ console.log("MathJax error: ", err); });
+        if (currentLang === 'es') {
+            if (translationCache[cacheKey]) {
+                textEl.innerHTML = _md(translationCache[cacheKey]);
+                runMathJax();
+            } else {
+                textEl.innerHTML = '<p><span class="spinner"></span> Traduciendo enunciado de forma segura...</p>';
+                fetchTranslation(rawProblemMd, cacheKey).then(function(translatedText) {
+                    // Verificación de concurrencia: que el usuario no haya cambiado de vista mientras cargaba
+                    var activeP = (currentMode === 'today') ? cachedData.today : cachedData.yesterday;
+                    if(activeP && activeP.id === p.id && currentLang === 'es') {
+                        textEl.innerHTML = _md(translatedText);
+                        runMathJax();
+                    }
+                });
+            }
+        } else {
+            textEl.innerHTML = _md(rawProblemMd);
+            runMathJax();
+        }
+
+        function runMathJax() {
+            if(window.MathJax && MathJax.typesetPromise){
+                var targets = [textEl];
+                if(currentMode === 'yesterday') targets.push(solEl);
+                MathJax.typesetPromise(targets).catch(function(err){});
+            }
         }
     }
 
@@ -315,14 +398,12 @@ window.MathJax = {
         btn.textContent = box.classList.toggle('show') ? '🙈 Ocultar solución' : '👁 Ver solución';
     };
 
-    // Inicializaciones automáticas al cargar la página
     startTimer();
     loadDailyPanels();
 })();
 
 function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* PARSER SEGURO DE MARKDOWN CON PROTECCIÓN ANTE ECUACIONES COMPLEJAS DE LATEX */
 function _md(md){
     if(!md) return '';
     var mathBlocks = [];
