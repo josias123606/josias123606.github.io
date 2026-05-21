@@ -10,4 +10,5 @@ Bienvenido a mi primer post.
 * Compartir mis apuntes.
 
 $x$
+
 $$f(x)=\frac{1}{x}$$
