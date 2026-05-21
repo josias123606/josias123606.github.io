@@ -24,6 +24,9 @@
 <loc>http://0.0.0.0:5000/olimpiadas/</loc>
 </url>
 <url>
+<loc>http://0.0.0.0:5000/problema-del-dia/</loc>
+</url>
+<url>
 <loc>http://0.0.0.0:5000/sobre-el-autor/</loc>
 </url>
 <url>

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: Olimpiadas
+title: Generador de Problemas al Azar
 ---
 
 <style>
@@ -25,23 +25,23 @@ title: Olimpiadas
 .p-badge.comp{background:#2a3a2a;color:#8ec88e;border:1px solid #3a5a3a}
 .p-badge.country{background:#2a2a3a;color:#8e9ec8;border:1px solid #3a3a5a}
 .p-badge.topic{background:#3a2a2a;color:#c88e8e;border:1px solid #5a3a3a}
-.p-badge.lang{background:#2a3a3a;color:#8eccc8;border:1px solid #3a5a5a}
 .problem-body{padding:24px}
 .problem-text{color:#d8d8d8;font-size:15px;line-height:1.85}
-.problem-text p{margin:12px 0}
+.problem-text p{margin:10px 0}
 .problem-text p:first-child{margin-top:0}
 .sol-toggle{margin-top:20px;padding:9px 18px;background:#252525;border:1px solid #383838;border-radius:6px;color:#999;font-size:13px;cursor:pointer;transition:all .15s}
 .sol-toggle:hover{background:#2e2e2e;color:#c0c0c0;border-color:#4a4a4a}
 .solution-box{margin-top:16px;padding:18px;background:#161616;border-left:3px solid #3a5a3a;border-radius:0 6px 6px 0;display:none}
 .solution-box.show{display:block}
-.solution-box .sol-text{color:#b0b0b0;font-size:14px;line-height:1.85}
+.sol-text{color:#b0b0b0;font-size:14px;line-height:1.85}
+.sol-text p{margin:10px 0}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid #4a6a9a;border-top-color:#8ab0d8;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:7px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.counter-badge{display:inline-block;background:#1e2e1e;border:1px solid #2e4e2e;border-radius:12px;padding:3px 10px;font-size:11px;color:#78a878;margin-left:auto}
+.attempt-hint{font-size:11px;color:#666;margin-top:6px}
 </style>
 
 <div class="olim-header">
-    <h2>🏆 Problemas de Olimpiadas</h2>
+    <h2>🎲 Generador de Problemas al Azar</h2>
     <p>Selecciona un problema al azar del compendio <strong style="color:#c0c0c0">MathNet</strong> — más de 27,000 problemas de competencias matemáticas internacionales. Filtra por tema y nivel de competencia.</p>
 </div>
 
@@ -49,11 +49,11 @@ title: Olimpiadas
     <div class="filter-label">Tema</div>
     <div class="filter-group" id="topicGroup">
         <div class="f-btn on" data-topic="todas">Todas</div>
-        <div class="f-btn" data-topic="Algebra">Álgebra</div>
-        <div class="f-btn" data-topic="Geometry">Geometría</div>
-        <div class="f-btn" data-topic="Combinatorics">Combinatoria</div>
-        <div class="f-btn" data-topic="Number Theory">T. de Números</div>
-        <div class="f-btn" data-topic="Analysis">Análisis</div>
+        <div class="f-btn" data-topic="algebra">Álgebra</div>
+        <div class="f-btn" data-topic="geometry">Geometría</div>
+        <div class="f-btn" data-topic="combinatorics">Combinatoria</div>
+        <div class="f-btn" data-topic="number theory">T. de Números</div>
+        <div class="f-btn" data-topic="analysis">Análisis</div>
     </div>
 </div>
 
@@ -67,19 +67,17 @@ title: Olimpiadas
     </div>
 </div>
 
-<button class="main-btn" id="randomBtn" onclick="fetchProblem()">
+<button class="main-btn" id="randomBtn" onclick="fetchRandomProblem()">
     🎲 Problema aleatorio
 </button>
-
+<div class="attempt-hint" id="attemptHint"></div>
 <div class="status-msg" id="statusMsg"></div>
 
 <div class="problem-card" id="problemCard">
     <div class="problem-head" id="problemMeta"></div>
     <div class="problem-body">
         <div class="problem-text" id="problemText"></div>
-        <button class="sol-toggle" id="solToggle" onclick="toggleSolution()">
-            👁 Ver solución
-        </button>
+        <button class="sol-toggle" id="solToggle" onclick="toggleSolution()">👁 Ver solución</button>
         <div class="solution-box" id="solutionBox">
             <div class="sol-text" id="solutionText"></div>
         </div>
@@ -87,192 +85,165 @@ title: Olimpiadas
 </div>
 
 <script>
-(function() {
-    var BASE     = 'https://datasets-server.huggingface.co';
-    var DS       = 'ShadenA%2FMathNet';
-    var CFG      = 'default';
-    var SPLIT    = 'train';
-    var lastOffset = -1;
-    var activeTopic = 'todas';
-    var activeDiff  = 'todas';
+(function(){
+    var DS         = 'ShadenA/MathNet';
+    var BASE       = 'https://datasets-server.huggingface.co';
+    var BATCH      = 100;
+    var MAX_TRY    = 6;
+    var lastId     = null;
+    var activeTopic= 'todas';
+    var activeDiff = 'todas';
 
-    var DIFF_WHERE = {
-        'nacional':       "(competition NOT LIKE '%IMO%' AND competition NOT LIKE '%APMO%' AND competition NOT LIKE '%USAMO%' AND competition NOT LIKE '%ISL%' AND competition NOT LIKE '%Balkan%' AND competition NOT LIKE '%Ibero%' AND competition NOT LIKE '%Nordic%' AND competition NOT LIKE '%Baltic%' AND competition NOT LIKE '%Benelux%' AND competition NOT LIKE '%Putnam%')",
-        'regional':       "(competition LIKE '%Balkan%' OR competition LIKE '%Ibero%' OR competition LIKE '%Nordic%' OR competition LIKE '%Baltic%' OR competition LIKE '%Benelux%' OR competition LIKE '%APMO%' OR competition LIKE '%Caucasus%' OR competition LIKE '%Mediterran%')",
-        'internacional':  "(competition LIKE '%IMO%' OR competition LIKE '%USAMO%' OR competition LIKE '%ISL%' OR competition LIKE '%Putnam%' OR competition LIKE '%Shortlist%')"
-    };
+    var _cfg   = 'all';
+    var _split = 'train';
+    var _total = 27817;
 
-    // Filter buttons
-    document.getElementById('topicGroup').addEventListener('click', function(e) {
-        var btn = e.target.closest('.f-btn');
-        if (!btn) return;
-        document.querySelectorAll('#topicGroup .f-btn').forEach(function(b) { b.classList.remove('on'); });
-        btn.classList.add('on');
-        activeTopic = btn.getAttribute('data-topic');
+    var DIFF_INTL    = ['imo','usamo','isl','shortlist','putnam'];
+    var DIFF_REG     = ['balkan','ibero','apmo','nordic','baltic','benelux','caucasus','mediterran','pan african','south east'];
+
+
+    function rowsUrl(offset){
+        return BASE + '/rows?dataset=' + encodeURIComponent(DS)
+             + '&config=' + encodeURIComponent(_cfg)
+             + '&split='  + encodeURIComponent(_split)
+             + '&offset=' + offset + '&length=' + BATCH;
+    }
+
+    document.getElementById('topicGroup').addEventListener('click', function(e){
+        var b=e.target.closest('.f-btn'); if(!b) return;
+        document.querySelectorAll('#topicGroup .f-btn').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on'); activeTopic=b.dataset.topic;
+    });
+    document.getElementById('diffGroup').addEventListener('click', function(e){
+        var b=e.target.closest('.f-btn'); if(!b) return;
+        document.querySelectorAll('#diffGroup .f-btn').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on'); activeDiff=b.dataset.diff;
     });
 
-    document.getElementById('diffGroup').addEventListener('click', function(e) {
-        var btn = e.target.closest('.f-btn');
-        if (!btn) return;
-        document.querySelectorAll('#diffGroup .f-btn').forEach(function(b) { b.classList.remove('on'); });
-        btn.classList.add('on');
-        activeDiff = btn.getAttribute('data-diff');
-    });
-
-    function buildWhere() {
-        var parts = ["language = 'English'"];
-        if (activeTopic !== 'todas') {
-            parts.push("topics_flat LIKE '%" + activeTopic + "%'");
+    function matchesTopic(row){
+        if(activeTopic==='todas') return true;
+        return JSON.stringify(row.topics_flat||'').toLowerCase().indexOf(activeTopic)!==-1;
+    }
+    function matchesDiff(row){
+        if(activeDiff==='todas') return true;
+        var c=(row.competition||'').toLowerCase();
+        if(activeDiff==='internacional') return DIFF_INTL.some(function(k){return c.indexOf(k)!==-1;});
+        if(activeDiff==='regional')      return DIFF_REG.some(function(k){return c.indexOf(k)!==-1;});
+        if(activeDiff==='nacional'){
+            return !DIFF_INTL.some(function(k){return c.indexOf(k)!==-1;})
+                && !DIFF_REG.some(function(k){return c.indexOf(k)!==-1;});
         }
-        if (activeDiff !== 'todas' && DIFF_WHERE[activeDiff]) {
-            parts.push(DIFF_WHERE[activeDiff]);
-        }
-        return parts.join(' AND ');
+        return true;
     }
 
-    function setStatus(msg, isErr) {
-        var el = document.getElementById('statusMsg');
-        el.innerHTML = msg;
-        el.className = 'status-msg' + (isErr ? ' err' : '');
+    function setStatus(msg,err){
+        var el=document.getElementById('statusMsg');
+        el.innerHTML=msg; el.className='status-msg'+(err?' err':'');
+    }
+    function setLoading(on){
+        var btn=document.getElementById('randomBtn');
+        btn.disabled=on;
+        btn.innerHTML=on?'<span class="spinner"></span>Buscando...':'🎲 Problema aleatorio';
     }
 
-    function setLoading(on) {
-        var btn = document.getElementById('randomBtn');
-        btn.disabled = on;
-        btn.innerHTML = on
-            ? '<span class="spinner"></span>Buscando...'
-            : '🎲 Problema aleatorio';
-    }
-
-    window.fetchProblem = async function() {
-        setLoading(true);
-        setStatus('');
+    window.fetchRandomProblem = async function(){
+        setLoading(true); setStatus('');
         document.getElementById('solutionBox').classList.remove('show');
-        document.getElementById('solToggle').textContent = '👁 Ver solución';
+        document.getElementById('solToggle').textContent='👁 Ver solución';
+        document.getElementById('attemptHint').textContent='';
 
-        try {
-            var where = encodeURIComponent(buildWhere());
-            var countUrl = BASE + '/filter?dataset=' + DS + '&config=' + CFG + '&split=' + SPLIT
-                         + '&where=' + where + '&offset=0&length=1';
-
-            var countResp = await fetch(countUrl);
-            if (!countResp.ok) throw new Error('Error al conectar con la API (' + countResp.status + ')');
-            var countData = await countResp.json();
-            var total = countData.num_rows_total || 0;
-
-            if (total === 0) {
-                setStatus('No se encontraron problemas con estos filtros. Intenta una combinación diferente.', true);
-                setLoading(false);
-                return;
-            }
-
-            // Pick a different offset from last time
+        var found=null, seen=[];
+        for(var attempt=0; attempt<MAX_TRY && !found; attempt++){
             var offset;
-            var attempts = 0;
-            do {
-                offset = Math.floor(Math.random() * total);
-                attempts++;
-            } while (offset === lastOffset && total > 1 && attempts < 10);
-            lastOffset = offset;
+            do { offset=Math.floor(Math.random()*Math.max(1,_total-BATCH)); }
+            while(seen.indexOf(offset)!==-1);
+            seen.push(offset);
 
-            var rowUrl = BASE + '/filter?dataset=' + DS + '&config=' + CFG + '&split=' + SPLIT
-                       + '&where=' + where + '&offset=' + offset + '&length=1';
+            try {
+                var r=await fetch(rowsUrl(offset));
+                if(!r.ok){ if(attempt===MAX_TRY-1) throw new Error('HTTP '+r.status); continue; }
+                var d=await r.json();
+                if(!d.rows||!d.rows.length) continue;
 
-            var rowResp = await fetch(rowUrl);
-            if (!rowResp.ok) throw new Error('Error al obtener el problema');
-            var rowData = await rowResp.json();
-
-            if (!rowData.rows || rowData.rows.length === 0) throw new Error('Respuesta vacía');
-
-            var prob = rowData.rows[0].row;
-            displayProblem(prob, offset + 1, total);
-
-        } catch(e) {
-            setStatus('⚠ ' + e.message + '. Verifica tu conexión e intenta de nuevo.', true);
+                var cands=d.rows.map(function(x){return x.row;}).filter(function(row){
+                    return row.problem_markdown && matchesTopic(row) && matchesDiff(row);
+                });
+                var fresh=cands.filter(function(r){return r.id!==lastId;});
+                if(fresh.length) cands=fresh;
+                if(cands.length) found=cands[Math.floor(Math.random()*cands.length)];
+            } catch(e){
+                if(attempt===MAX_TRY-1){
+                    setStatus('⚠ Error: '+e.message+'. Verifica tu conexión e intenta de nuevo.',true);
+                    setLoading(false); return;
+                }
+            }
+            if(!found && attempt<MAX_TRY-1)
+                document.getElementById('attemptHint').textContent='Intento '+(attempt+1)+'/'+MAX_TRY+' — ampliando búsqueda...';
         }
+
+        document.getElementById('attemptHint').textContent='';
+
+        if(!found){
+            setStatus('No se encontraron problemas con estos filtros. Prueba una combinación diferente.',true);
+            setLoading(false); return;
+        }
+
+        lastId=found.id;
+        _renderProblem(found,
+            document.getElementById('problemText'),
+            document.getElementById('solutionText'),
+            document.getElementById('problemMeta'));
+        document.getElementById('problemCard').className='problem-card show';
+        document.getElementById('problemCard').scrollIntoView({behavior:'smooth',block:'start'});
         setLoading(false);
     };
 
-    function displayProblem(p, num, total) {
-        // Meta badges
-        var meta = '';
-        if (p.competition) meta += '<span class="p-badge comp">🏅 ' + escHtml(p.competition) + '</span>';
-        if (p.country)     meta += '<span class="p-badge country">🌍 ' + escHtml(p.country) + '</span>';
-        if (p.topics_flat) {
-            var topics = Array.isArray(p.topics_flat) ? p.topics_flat : [p.topics_flat];
-            topics.slice(0,3).forEach(function(t) {
-                meta += '<span class="p-badge topic">📐 ' + escHtml(String(t).split('>').pop().trim()) + '</span>';
-            });
-        }
-        meta += '<span class="counter-badge">Problema #' + num + ' de ' + total + '</span>';
-        document.getElementById('problemMeta').innerHTML = meta;
-
-        // Problem text
-        var probEl = document.getElementById('problemText');
-        probEl.innerHTML = markdownToHtml(p.problem_markdown || '');
-        document.getElementById('problemCard').className = 'problem-card show';
-
-        // Solution
-        var solEl = document.getElementById('solutionText');
-        solEl.innerHTML = markdownToHtml(p.solutions_markdown || 'Solución no disponible.');
-        document.getElementById('solutionBox').classList.remove('show');
-        document.getElementById('solToggle').textContent = '👁 Ver solución';
-
-        // Re-render MathJax
-        if (window.MathJax && MathJax.typesetPromise) {
-            MathJax.typesetPromise([probEl, solEl]).catch(function(){});
-        }
-
-        setStatus('');
-        document.getElementById('problemCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    window.toggleSolution = function() {
-        var box = document.getElementById('solutionBox');
-        var btn = document.getElementById('solToggle');
-        var open = box.classList.toggle('show');
-        btn.textContent = open ? '🙈 Ocultar solución' : '👁 Ver solución';
+    window.toggleSolution = function(){
+        var box=document.getElementById('solutionBox');
+        var btn=document.getElementById('solToggle');
+        btn.textContent=box.classList.toggle('show')?'🙈 Ocultar solución':'👁 Ver solución';
     };
-
-    function escHtml(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    // Minimal markdown → HTML (preserves LaTeX, handles bold, lists, paragraphs)
-    function markdownToHtml(md) {
-        if (!md) return '';
-        var lines = md.split('\n');
-        var out = [];
-        var inList = false;
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
-            // List item
-            if (/^[-*+]\s/.test(line) || /^\d+\.\s/.test(line)) {
-                if (!inList) { out.push('<ul>'); inList = true; }
-                var item = line.replace(/^[-*+]\s/, '').replace(/^\d+\.\s/, '');
-                out.push('<li>' + inlineFormat(item) + '</li>');
-            } else {
-                if (inList) { out.push('</ul>'); inList = false; }
-                if (line.trim() === '') {
-                    out.push('');
-                } else if (/^#+\s/.test(line)) {
-                    out.push('<strong>' + inlineFormat(line.replace(/^#+\s/, '')) + '</strong>');
-                } else {
-                    out.push('<p>' + inlineFormat(line) + '</p>');
-                }
-            }
-        }
-        if (inList) out.push('</ul>');
-        // Merge consecutive <p> lines separated by empty lines
-        return out.join('\n');
-    }
-
-    function inlineFormat(s) {
-        // Preserve LaTeX, apply bold/italic
-        return s
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/`(.+?)`/g, '<code>$1</code>');
-    }
 })();
+
+/* Shared helpers exposed globally for problema-del-dia too */
+function _renderProblem(p, textEl, solEl, metaEl){
+    if(metaEl){
+        var m='';
+        if(p.competition) m+='<span class="p-badge comp">🏅 '+_esc(p.competition)+'</span>';
+        if(p.country)     m+='<span class="p-badge country">🌍 '+_esc(p.country)+'</span>';
+        var ts=p.topics_flat; if(!Array.isArray(ts)) ts=ts?[ts]:[];
+        ts.slice(0,3).forEach(function(t){ m+='<span class="p-badge topic">📐 '+_esc(String(t).split('>').pop().trim())+'</span>'; });
+        metaEl.innerHTML=m;
+    }
+    textEl.innerHTML = _md(p.problem_markdown||'');
+    if(solEl) solEl.innerHTML = _md(p.solutions_markdown||'Solución no disponible.');
+    if(window.MathJax&&MathJax.typesetPromise){
+        var els=[textEl]; if(solEl) els.push(solEl);
+        MathJax.typesetPromise(els).catch(function(){});
+    }
+}
+function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _md(md){
+    if(!md) return '';
+    var lines=md.split('\n'),out=[],inL=false;
+    for(var i=0;i<lines.length;i++){
+        var l=lines[i];
+        if(/^[-*+]\s/.test(l)||/^\d+\.\s/.test(l)){
+            if(!inL){out.push('<ul>');inL=true;}
+            out.push('<li>'+_fmt(l.replace(/^[-*+\d.]+\s/,''))+'</li>');
+        } else {
+            if(inL){out.push('</ul>');inL=false;}
+            if(l.trim()==='') out.push('');
+            else if(/^#+\s/.test(l)) out.push('<strong>'+_fmt(l.replace(/^#+\s/,''))+'</strong>');
+            else out.push('<p>'+_fmt(l)+'</p>');
+        }
+    }
+    if(inL) out.push('</ul>');
+    return out.join('\n');
+}
+function _fmt(s){
+    return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g,'<em>$1</em>')
+            .replace(/`(.+?)`/g,'<code>$1</code>');
+}
 </script>
