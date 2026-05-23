@@ -416,10 +416,25 @@ function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 function _md(md){
     if(!md) return '';
-    var mathBlocks = [];
+    
+    var displayMathBlocks = [];
+    var inlineMathBlocks = [];
+
+    // 1. Extraer bloques expuestos tradicionales $$ ... $$
     md = md.replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
-        mathBlocks.push(match);
-        return '\n%%%MATH_BLOCK_' + (mathBlocks.length - 1) + '%%%\n';
+        displayMathBlocks.push(match);
+        return '\n%%%DISPLAY_MATH_' + (displayMathBlocks.length - 1) + '%%%\n';
+    });
+
+    // 2. Extraer bloques $ ... $ protegiendo aquellos que tengan saltos de línea (como tu problema)
+    md = md.replace(/\$([\s\S]*?)\$/g, function(match, content) {
+        if (content.includes('\n')) {
+            displayMathBlocks.push(match);
+            return '\n%%%DISPLAY_MATH_' + (displayMathBlocks.length - 1) + '%%%\n';
+        } else {
+            inlineMathBlocks.push(match);
+            return '%%%INLINE_MATH_' + (inlineMathBlocks.length - 1) + '%%%';
+        }
     });
 
     var lines=md.split('\n'),out=[],inL=false;
@@ -433,9 +448,9 @@ function _md(md){
         if(/^[-*+]\s/.test(l)||/^\d+\.\s/.test(l)){
             if(!inL){out.push('<ul>');inL=true;}
             out.push('<li>'+_fmt(l.replace(/^[-*+\d.]+\s/,''))+'</li>');
-        } else if(l.indexOf('%%%MATH_BLOCK_') !== -1) {
+        } else if(l.indexOf('%%%DISPLAY_MATH_') !== -1) {
             if(inL){out.push('</ul>');inL=false;}
-            out.push(l); 
+            out.push(l); // Insertar el marcador directo sin envolver en <p>
         } else {
             if(inL){out.push('</ul>');inL=false;}
             if(/^#+\s/.test(l)) out.push('<strong>'+_fmt(l.replace(/^#+\s/,''))+'</strong>');
@@ -445,26 +460,22 @@ function _md(md){
     if(inL) out.push('</ul>');
     var result = out.join('\n');
 
-    for(var j=0; j<mathBlocks.length; j++){
-        result = result.replace('%%%MATH_BLOCK_' + j + '%%%', mathBlocks[j]);
+    // Restaurar las ecuaciones en bloque intactas
+    for(var j=0; j<displayMathBlocks.length; j++){
+        result = result.replace('%%%DISPLAY_MATH_' + j + '%%%', displayMathBlocks[j]);
+    }
+    // Restaurar las ecuaciones en línea
+    for(var k=0; k<inlineMathBlocks.length; k++){
+        result = result.replace('%%%INLINE_MATH_' + k + '%%%', inlineMathBlocks[k]);
     }
     return result;
 }
 
 function _fmt(s){
-    var inlineMath = [];
-    s = s.replace(/\$([\s\S]*?)\$/g, function(match) {
-        inlineMath.push(match);
-        return '%%%INLINE_MATH_' + (inlineMath.length - 1) + '%%%';
-    });
-
-    s = s.replace(/\*\*(.+?)\*\"/g,'<strong>$1</strong>')
+    // Corregido el reemplazo de las negritas de '**' que tenía un error de sintaxis en tu regex anterior
+    s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
          .replace(/\*(.+?)\*/g,'<em>$1</em>')
          .replace(/`(.+?)`/g,'<code>$1</code>');
-
-    for(var j=0; j<inlineMath.length; j++){
-        s = s.replace('%%%INLINE_MATH_' + j + '%%%', inlineMath[j]);
-    }
     return s;
 }
 </script>
