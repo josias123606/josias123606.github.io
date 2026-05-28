@@ -4,8 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page.title %}{{ page.title }} - {% endif %}Matemáticas & Animaciones</title>
+    <meta name="description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+    <meta name="author" content="{{ site.author }}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ page.url | absolute_url }}">
+    <meta property="og:title" content="{% if page.title %}{{ page.title }} - {% endif %}Matemáticas & Animaciones">
+    <meta property="og:description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+    <meta property="og:image" content="{{ '/attached_assets/logo.svg' | absolute_url }}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ page.url | absolute_url }}">
+    <meta property="twitter:title" content="{% if page.title %}{{ page.title }} - {% endif %}Matemáticas & Animaciones">
+    <meta property="twitter:description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+    <meta property="twitter:image" content="{{ '/attached_assets/logo.svg' | absolute_url }}">
+    
     <link rel="icon" type="image/svg+xml" href="{{ '/favicon.svg' | relative_url }}">
+    <link rel="canonical" href="{{ page.url | absolute_url }}">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    
+    <!-- Security: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https://api.allorigins.win;">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ '/manifest.json' | relative_url }}">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Schema.org markup -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Matemáticas & Animaciones",
+      "url": "{{ '/' | absolute_url }}",
+      "description": "{{ site.description }}",
+      "author": {
+        "@type": "Person",
+        "name": "{{ site.author }}"
+      }
+    }
+    </script>
+    
     <script>
         MathJax = {
             tex: {
@@ -19,6 +62,13 @@
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;background:#1a1a1a;color:#e0e0e0;line-height:1.6}
+        /* Accessibility: Focus styles */
+        a:focus,button:focus,input:focus{outline:2px solid #4a9eff;outline-offset:2px}
+        /* Skip to main content link */
+        .skip-link{position:absolute;top:-40px;left:0;background:#4a9eff;color:#fff;padding:8px 16px;z-index:1000;text-decoration:none;border-radius:0 0 4px 0;transition:top .2s}
+        .skip-link:focus{top:0}
+        /* Visually hidden for screen readers */
+        .visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);border:0}
         header{background:#252525;border-bottom:2px solid #404040;padding:20px 0;position:sticky;top:0;z-index:100}
         .header-container{max-width:1200px;margin:0 auto;padding:0 20px}
         .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
@@ -93,12 +143,15 @@
     </style>
 </head>
 <body>
-    <header>
+    <!-- Accessibility: Skip to main content -->
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    
+    <header role="banner">
         <div class="header-container">
             <div class="header-top">
-                <a href="/" class="site-title">
-                    <div class="logo-m">
-                        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <a href="/" class="site-title" aria-label="Ir a la página de inicio">
+                    <div class="logo-m" aria-hidden="true">
+                        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <text x="1" y="18" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="19" font-weight="bold" fill="white">M</text>
                         </svg>
                     </div>
@@ -106,12 +159,13 @@
                 </a>
                 <div class="header-search">
                     <div class="search-wrap">
-                        <input class="search-input" id="searchInput" type="text" placeholder="Buscar entrada..." autocomplete="off">
-                        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <label for="searchInput" class="visually-hidden">Buscar entrada</label>
+                        <input class="search-input" id="searchInput" type="search" placeholder="Buscar entrada..." autocomplete="off" aria-label="Buscar entradas del blog">
+                        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     </div>
                 </div>
             </div>
-            <nav>
+            <nav role="navigation" aria-label="Menú principal">
                 <a href="/" {% if page.url == '/' %}class="active"{% endif %}>Sobre el Autor</a>
                 <a href="/animaciones" {% if page.url contains 'animaciones' %}class="active"{% endif %}>Animaciones</a>
                 <a href="/entradas" {% if page.url contains 'entradas' or page.url contains 'blog' or page.layout == 'post' %}class="active"{% endif %}>Entradas</a>
@@ -122,30 +176,30 @@
     </header>
 
     <div class="main-container">
-        <div class="content">
+        <main id="main-content" class="content" role="main">
             {{ content }}
-        </div>
+        </main>
 
-        <aside class="sidebar">
+        <aside class="sidebar" role="complementary" aria-label="Barra lateral de filtrado">
             <h3>📁 Categorías</h3>
-            <div class="categories" id="categoryList">
-                <div class="category-item active" data-category="todas">Todas</div>
-                <div class="category-item" data-category="Análisis">Análisis</div>
-                <div class="category-item" data-category="Geometría">Geometría</div>
-                <div class="category-item" data-category="Fractales">Fractales</div>
-                <div class="category-item" data-category="Sistemas Dinámicos">Sistemas Dinámicos</div>
-                <div class="category-item" data-category="Trigonometría">Trigonometría</div>
-                <div class="category-item" data-category="Topología">Topología</div>
-                <div class="category-item" data-category="Fourier">Fourier</div>
-                <div class="category-item" data-category="Análisis Complejo">Análisis Complejo</div>
+            <div class="categories" id="categoryList" role="listbox" aria-label="Filtrar por categoría">
+                <div class="category-item active" data-category="todas" role="option" aria-selected="true" tabindex="0">Todas</div>
+                <div class="category-item" data-category="Análisis" role="option" aria-selected="false" tabindex="0">Análisis</div>
+                <div class="category-item" data-category="Geometría" role="option" aria-selected="false" tabindex="0">Geometría</div>
+                <div class="category-item" data-category="Fractales" role="option" aria-selected="false" tabindex="0">Fractales</div>
+                <div class="category-item" data-category="Sistemas Dinámicos" role="option" aria-selected="false" tabindex="0">Sistemas Dinámicos</div>
+                <div class="category-item" data-category="Trigonometría" role="option" aria-selected="false" tabindex="0">Trigonometría</div>
+                <div class="category-item" data-category="Topología" role="option" aria-selected="false" tabindex="0">Topología</div>
+                <div class="category-item" data-category="Fourier" role="option" aria-selected="false" tabindex="0">Fourier</div>
+                <div class="category-item" data-category="Análisis Complejo" role="option" aria-selected="false" tabindex="0">Análisis Complejo</div>
             </div>
 
-            <button class="adv-search-btn" id="advBtn">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <button class="adv-search-btn" id="advBtn" aria-expanded="false" aria-controls="advPanel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
                 Búsqueda avanzada
             </button>
 
-            <div class="adv-panel" id="advPanel">
+            <div class="adv-panel" id="advPanel" role="region" aria-label="Filtros avanzados">
                 <p>Selecciona una o más categorías:</p>
                 <div class="adv-checks">
                     <label class="adv-check-label"><input type="checkbox" value="Análisis"> Análisis</label>
@@ -160,7 +214,7 @@
                 <button class="adv-apply" id="advApply">Aplicar filtros</button>
             </div>
 
-            <div class="no-results" id="noResults">No se encontraron entradas.</div>
+            <div class="no-results" id="noResults" role="status" aria-live="polite">No se encontraron entradas.</div>
         </aside>
     </div>
 
@@ -238,6 +292,27 @@
                 });
             }
             applyVisibility();
+        });
+        
+        // PWA: Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                }).catch(function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+        
+        // Accessibility: Keyboard navigation for category items
+        document.querySelectorAll('.category-item').forEach(function(item) {
+            item.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
         });
     </script>
 </body>
