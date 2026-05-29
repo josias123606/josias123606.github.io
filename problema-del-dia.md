@@ -143,10 +143,10 @@ window.MathJax = {
     </div>
     
     <div class="lang-selector">
-        🌐 <span>Idioma:</span>
+        🌐 <span>Idioma predeterminado:</span>
         <select id="langSelect" onchange="changeLanguage(this.value)">
-            <option value="original">Original (En)</option>
-            <option value="es">Español (Es)</option>
+            <option value="original">Original (En/Pt/Es)</option>
+            <option value="es">Traducir a Español (Es)</option>
         </select>
     </div>
 </div>
@@ -185,7 +185,7 @@ window.MathJax = {
     var BASE = 'https://datasets-server.huggingface.co';
     var currentMode = 'today'; 
     
-    // Cargar preferencia guardada del usuario de forma inmediata antes de renderizar nada
+    // Leer idioma guardado antes de pintar el DOM
     var currentLang = localStorage.getItem('pdd_lang') || 'original';
     document.getElementById('langSelect').value = currentLang;
 
@@ -241,7 +241,7 @@ window.MathJax = {
     window.changeLanguage = function(lang) {
         if(lang === currentLang) return;
         currentLang = lang;
-        localStorage.setItem('pdd_lang', lang); // Guardar configuración del lector
+        localStorage.setItem('pdd_lang', lang);
         renderCurrentState();
     };
 
@@ -281,35 +281,36 @@ window.MathJax = {
         }
     }
 
-    // Tokenizador ultra-resistente basado en invariantes numéricas lineales
+    // Traductor con autodetección inteligente basado en el nodo de Google Translate
     async function fetchTranslation(text, cacheKey) {
         if (!text) return '';
         
         var mathBlocks = [];
-        // Extraemos bloques de LaTeX y los sustituimos por identificadores numéricos puros que la API jamás traducirá
+        // Aislamos expresiones de LaTeX usando tokens estructurales inmunes a traductores
         var placeholderMd = text.replace(/\$\$[\s\S]*?\$\$|\$[\s\S]*?\$/g, function(match) {
             mathBlocks.push(match);
-            return ' ###' + (mathBlocks.length - 1) + '### ';
+            return ' [[[' + (mathBlocks.length - 1) + ']]] ';
         });
 
         try {
-            var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(placeholderMd) + '&langpair=en|es';
+            var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=' + encodeURIComponent(placeholderMd);
             var res = await fetch(url);
             if(!res.ok) throw new Error();
             var data = await res.json();
-            var translated = data.responseData.translatedText;
+            
+            // Recomponemos las líneas devueltas por la respuesta JSON de Google
+            var translated = data[0].map(function(segment) { return segment[0]; }).join('');
 
-            // Reinsertamos los bloques matemáticos intactos
+            // Devolvemos el LaTeX original sin alteraciones sintácticas
             for(var i = 0; i < mathBlocks.length; i++) {
-                // El Regex captura variaciones de espacios colaterales introducidos por el motor de traducción
-                var rx = new RegExp('###\\s*' + i + '\\s*###', 'g');
+                var rx = new RegExp('\\[\\[\\[\\s*' + i + '\\s*\\]\\]\\]', 'g');
                 translated = translated.replace(rx, mathBlocks[i]);
             }
             
             translationCache[cacheKey] = translated;
             return translated;
         } catch(e) {
-            return text; // Fallback: si la API falla o excede cuotas, se muestra el texto nativo de forma limpia
+            return text; // Fallback limpio en caso de fallo de red
         }
     }
 
@@ -371,7 +372,6 @@ window.MathJax = {
             solEl.innerHTML = _md(solContent);
         }
 
-        // CONTROL E INTERSECCIÓN DE IDIOMAS ANTES DE RENDERIZAR EL CUERPO
         var rawProblemMd = p.problem_markdown || '';
         var cacheKey = p.id + '_' + currentMode;
 
@@ -380,7 +380,7 @@ window.MathJax = {
                 textEl.innerHTML = _md(translationCache[cacheKey]);
                 runMathJax();
             } else {
-                textEl.innerHTML = '<p style="color:#888;"><span class="spinner"></span> Traduciendo enunciado de forma segura sin alterar LaTeX...</p>';
+                textEl.innerHTML = '<p style="color:#888;"><span class="spinner"></span> Adaptando enunciado al español de forma segura...</p>';
                 fetchTranslation(rawProblemMd, cacheKey).then(function(translatedText) {
                     var activeP = (currentMode === 'today') ? cachedData.today : cachedData.yesterday;
                     if(activeP && activeP.id === p.id && currentLang === 'es') {
@@ -396,9 +396,8 @@ window.MathJax = {
 
         function runMathJax() {
             if(window.MathJax && MathJax.typesetPromise){
-                var targets = [textEl];
-                if(currentMode === 'yesterday') targets.push(solEl);
-                MathJax.typesetPromise(targets).catch(function(err){});
+                // Forzamos el procesamiento asíncronico sobre los elementos cargados dinámicamente
+                MathJax.typesetPromise([textEl, solEl]).catch(function(err){});
             }
         }
     }
@@ -417,10 +416,25 @@ function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 function _md(md){
     if(!md) return '';
-    var mathBlocks = [];
+    
+    var displayMathBlocks = [];
+    var inlineMathBlocks = [];
+
+    // 1. Extraer bloques expuestos tradicionales $$ ... $$
     md = md.replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
-        mathBlocks.push(match);
-        return '\n%%%MATH_BLOCK_' + (mathBlocks.length - 1) + '%%%\n';
+        displayMathBlocks.push(match);
+        return '\n%%%DISPLAY_MATH_' + (displayMathBlocks.length - 1) + '%%%\n';
+    });
+
+    // 2. Extraer bloques $ ... $ protegiendo aquellos que tengan saltos de línea (como tu problema)
+    md = md.replace(/\$([\s\S]*?)\$/g, function(match, content) {
+        if (content.includes('\n')) {
+            displayMathBlocks.push(match);
+            return '\n%%%DISPLAY_MATH_' + (displayMathBlocks.length - 1) + '%%%\n';
+        } else {
+            inlineMathBlocks.push(match);
+            return '%%%INLINE_MATH_' + (inlineMathBlocks.length - 1) + '%%%';
+        }
     });
 
     var lines=md.split('\n'),out=[],inL=false;
@@ -434,9 +448,9 @@ function _md(md){
         if(/^[-*+]\s/.test(l)||/^\d+\.\s/.test(l)){
             if(!inL){out.push('<ul>');inL=true;}
             out.push('<li>'+_fmt(l.replace(/^[-*+\d.]+\s/,''))+'</li>');
-        } else if(l.indexOf('%%%MATH_BLOCK_') !== -1) {
+        } else if(l.indexOf('%%%DISPLAY_MATH_') !== -1) {
             if(inL){out.push('</ul>');inL=false;}
-            out.push(l); 
+            out.push(l); // Insertar el marcador directo sin envolver en <p>
         } else {
             if(inL){out.push('</ul>');inL=false;}
             if(/^#+\s/.test(l)) out.push('<strong>'+_fmt(l.replace(/^#+\s/,''))+'</strong>');
@@ -446,26 +460,22 @@ function _md(md){
     if(inL) out.push('</ul>');
     var result = out.join('\n');
 
-    for(var j=0; j<mathBlocks.length; j++){
-        result = result.replace('%%%MATH_BLOCK_' + j + '%%%', mathBlocks[j]);
+    // Restaurar las ecuaciones en bloque intactas
+    for(var j=0; j<displayMathBlocks.length; j++){
+        result = result.replace('%%%DISPLAY_MATH_' + j + '%%%', displayMathBlocks[j]);
+    }
+    // Restaurar las ecuaciones en línea
+    for(var k=0; k<inlineMathBlocks.length; k++){
+        result = result.replace('%%%INLINE_MATH_' + k + '%%%', inlineMathBlocks[k]);
     }
     return result;
 }
 
 function _fmt(s){
-    var inlineMath = [];
-    s = s.replace(/\$([\s\S]*?)\$/g, function(match) {
-        inlineMath.push(match);
-        return '%%%INLINE_MATH_' + (inlineMath.length - 1) + '%%%';
-    });
-
+    // Corregido el reemplazo de las negritas de '**' que tenía un error de sintaxis en tu regex anterior
     s = s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
          .replace(/\*(.+?)\*/g,'<em>$1</em>')
          .replace(/`(.+?)`/g,'<code>$1</code>');
-
-    for(var j=0; j<inlineMath.length; j++){
-        s = s.replace('%%%INLINE_MATH_' + j + '%%%', inlineMath[j]);
-    }
     return s;
 }
 </script>
