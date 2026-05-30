@@ -4,14 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page.title %}{{ page.title }} - {% endif %}Matemáticas & Animaciones</title>
+    <meta name="description" content="{{ site.description | default: 'Blog sobre matemáticas, teoría y animaciones visuales' }}">
+    <meta name="author" content="{{ site.author | default: 'Josias' }}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ page.url | absolute_url }}">
+    <meta property="og:title" content="{% if page.title %}{{ page.title }} - {% endif %}Matemáticas & Animaciones">
+    <meta property="og:description" content="{{ site.description | default: 'Blog sobre matemáticas, teoría y animaciones visuales' }}">
+    <meta property="og:image" content="{{ '/attached_assets/logo.svg' | absolute_url }}">
+    
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% if page.title %}{{ page.title }} - {% endif %}Matemáticas & Animaciones">
+    <meta name="twitter:description" content="{{ site.description | default: 'Blog sobre matemáticas, teoría y animaciones visuales' }}">
+    
     <link rel="icon" type="image/svg+xml" href="{{ '/favicon.svg' | relative_url }}">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://translate.googleapis.com">
     <script>
         MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
                 displayMath: [['$$', '$$'], ['\\[', '\\]']],
                 packages: {'[+]': ['ams']}
+            },
+            loader: {load: ['[tex]/ams']},
+            startup: {
+                typeset: false
             }
         };
     </script>
@@ -32,6 +53,9 @@
         .search-input:focus{border-color:#777;width:240px}
         .search-input::placeholder{color:#666}
         .search-icon{position:absolute;right:11px;color:#888;pointer-events:none}
+        /* Lazy loading placeholder */
+        img{max-width:100%;height:auto;display:block}
+        .lazy-img{background:#1e1e1e;min-height:100px}
         nav{display:flex;gap:0;border-bottom:1px solid #404040;flex-wrap:wrap}
         nav a{padding:12px 20px;color:#b0b0b0;text-decoration:none;border-bottom:3px solid transparent;transition:color .2s,border-color .2s;font-size:14px;font-weight:500}
         nav a:hover{color:#e0e0e0;border-bottom-color:#666}
@@ -167,7 +191,28 @@
     {% include footer.html %}
 
     <script>
+        // Lazy loading para imágenes con IntersectionObserver
+        if ('IntersectionObserver' in window) {
+            var imgObserver = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        var img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.classList.remove('lazy-img');
+                        }
+                        imgObserver.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '50px 0px' });
+            
+            document.querySelectorAll('img[data-src]').forEach(function(img) {
+                imgObserver.observe(img);
+            });
+        }
+        
         var posts = document.querySelectorAll('.blog-post');
+        var searchTimeout = null;
 
         function showAll() {
             posts.forEach(function(p) { p.classList.remove('hidden'); });
@@ -199,20 +244,23 @@
             });
         });
 
-        // Búsqueda por nombre en tiempo real
+        // Búsqueda por nombre con debounce (300ms)
         document.getElementById('searchInput').addEventListener('input', function() {
             var query = this.value.trim().toLowerCase();
-            document.querySelectorAll('.category-item').forEach(function(el) { el.classList.remove('active'); });
-            document.querySelector('[data-category="todas"]').classList.add('active');
-            document.querySelectorAll('.adv-checks input').forEach(function(cb) { cb.checked = false; });
-            showAll();
-            if (query !== '') {
-                posts.forEach(function(post) {
-                    var title = (post.querySelector('h2, h3') || {}).textContent || '';
-                    post.classList.toggle('hidden', !title.toLowerCase().includes(query));
-                });
-            }
-            applyVisibility();
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(function() {
+                document.querySelectorAll('.category-item').forEach(function(el) { el.classList.remove('active'); });
+                document.querySelector('[data-category="todas"]').classList.add('active');
+                document.querySelectorAll('.adv-checks input').forEach(function(cb) { cb.checked = false; });
+                showAll();
+                if (query !== '') {
+                    posts.forEach(function(post) {
+                        var title = (post.querySelector('h2, h3') || {}).textContent || '';
+                        post.classList.toggle('hidden', !title.toLowerCase().includes(query));
+                    });
+                }
+                applyVisibility();
+            }, 300);
         });
 
         // Panel búsqueda avanzada
@@ -239,6 +287,13 @@
             }
             applyVisibility();
         });
+        
+        // Typeset inicial de MathJax después de cargar la página
+        if (window.MathJax && MathJax.typesetPromise) {
+            document.addEventListener('DOMContentLoaded', function() {
+                MathJax.typesetPromise().catch(function(err) { console.log('MathJax error:', err); });
+            });
+        }
     </script>
 </body>
 </html>
