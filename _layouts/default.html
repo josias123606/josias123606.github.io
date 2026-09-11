@@ -32,7 +32,8 @@
             },
             loader: {load: ['[tex]/ams']},
             startup: {
-                typeset: false
+                typeset: true,
+                promise: Promise.resolve()
             }
         };
     </script>
@@ -288,12 +289,6 @@
             applyVisibility();
         });
         
-        // Typeset inicial de MathJax después de cargar la página
-        if (window.MathJax && MathJax.typesetPromise) {
-            document.addEventListener('DOMContentLoaded', function() {
-                MathJax.typesetPromise().catch(function(err) { console.log('MathJax error:', err); });
-            });
-        }
     </script>
 </body>
 </html>
