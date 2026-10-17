@@ -16,7 +16,7 @@ title: Animaciones
 .anim-status{font-size:12px;color:#666;margin-left:auto}
 .speed-wrap{display:flex;align-items:center;gap:8px;font-size:12px;color:#888}
 .speed-wrap input[type=range]{accent-color:#888;width:80px}
-.anim-desc{margin-top:16px;padding:14px 16px;background:#1e1e1e;border-left:3px solid #444;border-radius:0 6px 6px 0;font-size:13px;color:#a0a0a0;line-height:1.7}
+.anim-desc{margin-top:16px;padding:14px 16px;background:#1e1e1e;border-left:3px solid #444;border-radius:0 6px 6px 0;font-size:21px;color:#a0a0a0;line-height:1.7}
 .anim-desc strong{color:#c8c8c8}
 .anim-badge{display:inline-block;background:#333;padding:2px 8px;border-radius:4px;font-size:11px;color:#999;margin-bottom:8px}
 </style>

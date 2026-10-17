@@ -44,14 +44,14 @@ window.MathJax = {
 .p-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:500}
 .p-badge.topic {background:#3a2a2a;color:#c88e8e;border:1px solid #5a3a3a}
 .problem-body{padding:24px}
-.problem-text{color:#d8d8d8;font-size:15px;line-height:1.85}
+.problem-text{color:#d8d8d8;font-size:21px;line-height:1.85}
 .problem-text p{margin:10px 0}
 .problem-text p:first-child{margin-top:0}
 .sol-toggle{margin-top:20px;padding:9px 18px;background:#252525;border:1px solid #383838;border-radius:6px;color:#999;font-size:13px;cursor:pointer;transition:all .15s}
 .sol-toggle:hover{background:#2e2e2e;color:#c0c0c0;border-color:#4a4a4a}
 .solution-box{margin-top:16px;padding:18px;background:#161616;border-left:3px solid #3a5a3a;border-radius:0 6px 6px 0;display:none}
 .solution-box.show{display:block}
-.sol-text{color:#b0b0b0;font-size:14px;line-height:1.85}
+.sol-text{color:#b0b0b0;font-size:21px;line-height:1.85}
 .sol-text p{margin:10px 0}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid #4a6a9a;border-top-color:#8ab0d8;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:7px}
 @keyframes spin{to{transform:rotate(360deg)}}
